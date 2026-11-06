@@ -1,0 +1,13 @@
+
+> elo-alertas@1.0.0 test:integracao
+> vitest run --config vitest.integracao.config.ts
+
+
+ RUN  v5.1.0 elo-alertas
+
+
+ Test Files  3 passed (3)
+      Tests  33 passed (33)
+   Start at  02:39:51
+   Duration  3.77s (import 49%, tests 48%, transform 3%, worker 1%)
+

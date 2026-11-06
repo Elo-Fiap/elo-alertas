@@ -1,0 +1,96 @@
+Evidências geradas com o serviço compilado (npm start) e o banco recém-criado.
+
+$ curl http://localhost:3040/saude
+HTTP/1.1 200 OK
+content-type: application/json; charset=utf-8
+content-length: 28
+
+{"status":"ok","banco":"ok"}
+
+
+$ curl http://localhost:3040/regua?reguaId=regua-exemplo
+HTTP/1.1 200 OK
+content-type: application/json; charset=utf-8
+content-length: 143
+
+{"reguaId":"regua-exemplo","local":"Córrego do bairro de exemplo","nivelMetros":0.93,"limiteMetros":1.2,"medidaEm":"2026-11-06T05:29:46.450Z"}
+
+
+$ curl http://localhost:3040/reguas
+HTTP/1.1 200 OK
+content-type: application/json; charset=utf-8
+content-length: 185
+
+[{"reguaId":"regua-exemplo","local":"Córrego do bairro de exemplo","limiteMetros":1.2,"ultimaLeitura":{"nivelMetros":0.93,"medidaEm":"2026-11-06T05:29:46.450Z","acimaDoLimite":false}}]
+
+
+$ curl http://localhost:3040/reguas/regua-exemplo/leituras?horas=1
+HTTP/1.1 200 OK
+content-type: application/json; charset=utf-8
+content-length: 1248
+
+[{"nivelMetros":0.93,"medidaEm":"2026-11-06T05:29:46.450Z","bateriaPercentual":88,"acimaDoLimite":false},{"nivelMetros":0.9,"medidaEm":"2026-11-06T05:24:46.450Z","bateriaPercentual":88,"acimaDoLimite":false},{"nivelMetros":0.86,"medidaEm":"2026-11-06T05:19:46.450Z","bateriaPercentual":88,"acimaDoLimite":false},{"nivelMetros":0.81,"medidaEm":"2026-11-06T05:14:46.450Z","bateriaPercentual":88,"acimaDoLimite":false},{"nivelMetros":0.74,"medidaEm":"2026-11-06T05:09:46.450Z","bateriaPercentual":89,"acimaDoLimite":false},{"nivelMetros":0.68,"medidaEm":"2026-11-06T05:04:46.450Z","bateriaPercentual":89
+
+
+$ curl -X POST http://localhost:3040/leituras -H Content-Type: application/json -H X-Chave-Dispositivo: <CHAVE> -d {"reguaId":"regua-exemplo","nivelMetros":1.2345,"bateriaPercentual":91}
+HTTP/1.1 204 No Content
+
+
+
+$ curl http://localhost:3040/regua?reguaId=regua-exemplo
+HTTP/1.1 200 OK
+content-type: application/json; charset=utf-8
+content-length: 143
+
+{"reguaId":"regua-exemplo","local":"Córrego do bairro de exemplo","nivelMetros":1.23,"limiteMetros":1.2,"medidaEm":"2026-11-06T05:30:03.815Z"}
+
+
+$ curl -X POST http://localhost:3040/leituras -H Content-Type: application/json -H X-Chave-Dispositivo: chave-errada -d {"reguaId":"regua-exemplo","nivelMetros":1}
+HTTP/1.1 401 Unauthorized
+content-type: application/json; charset=utf-8
+content-length: 81
+
+{"erro":"chave_invalida","mensagem":"Chave do dispositivo ausente ou inválida."}
+
+
+$ curl -X POST http://localhost:3040/leituras -H Content-Type: application/json -H X-Chave-Dispositivo: <CHAVE> -d {"reguaId":"regua-exemplo","nivelMetros":25}
+HTTP/1.1 400 Bad Request
+content-type: application/json; charset=utf-8
+content-length: 85
+
+{"erro":"dado_invalido","mensagem":"O campo \"nivelMetros\" deve ser no máximo 20."}
+
+
+$ curl http://localhost:3040/regua?reguaId=nao-existe
+HTTP/1.1 404 Not Found
+content-type: application/json; charset=utf-8
+content-length: 62
+
+{"erro":"nao_encontrado","mensagem":"Régua não encontrada."}
+
+
+$ curl http://localhost:3040/avisos?codigoIbge=12
+HTTP/1.1 400 Bad Request
+content-type: application/json; charset=utf-8
+content-length: 105
+
+{"erro":"dado_invalido","mensagem":"O campo \"codigoIbge\" não está no formato esperado (^[0-9]{7}$)."}
+
+
+$ curl http://localhost:3040/avisos?codigoIbge=3550308
+HTTP/1.1 200 OK
+x-avisos-atualizados-em: 2026-11-06T05:30:03.882Z
+content-type: application/json; charset=utf-8
+content-length: 1018
+
+[{"id":"56295","titulo":"Tempestade","severidade":"Perigo Potencial","inicio":"2026-11-07T03:00:00.000Z","fim":"2026-11-08T02:59:00.000Z","riscos":["Chuva entre 20 e 30 mm/h ou até 50 mm/dia, ventos intensos (40-60 km/h), e queda de granizo. Baixo risco de corte de energia elétrica, estragos em plantações, queda de galhos de árvores e de alagamentos."],"instrucoes":["Em caso de rajadas de vento: (não se abrigue debaixo de árvores, pois há leve risco de queda e descargas elétricas e não estacione veículos próximos a torres de transmissão e placas de propaganda).","Evite usar aparel
+
+
+$ curl http://localhost:3040/avisos?codigoIbge=3550308
+HTTP/1.1 200 OK
+x-avisos-atualizados-em: 2026-11-06T05:30:03.882Z
+content-type: application/json; charset=utf-8
+content-length: 1018
+
+[{"id":"56295","titulo":"Tempestade","severidade":"Perigo Potencial","inicio":"2026-11-07T03:00:00.000Z","fim":"2026-11-08T02:59:00.000Z","riscos":["Chuva entre 20 e 30 mm/h ou até 50 mm/dia, ventos intensos (40-60 km/h), e queda de granizo. Baixo risco de corte de energia elétrica, estragos em plantações, queda de galhos de árvores e de alagamentos."],"instrucoes":["Em caso de rajadas de vento: (não se abrigue debaixo de árvores, pois há leve risco de queda e descargas elétricas e não estacione veículos próximos a torres de transmissão e placas de propaganda).","Evite usar aparel
+

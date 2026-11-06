@@ -1,0 +1,70 @@
+// Modelo do banco do serviço Elo Alertas.
+// Tabelas e colunas em snake_case no Postgres; nomes em camelCase no código.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Regua {
+  id                 String    @id
+  local              String
+  limiteMetros       Decimal   @map("limite_metros") @db.Decimal(5, 2)
+  alturaSensorMetros Decimal?  @map("altura_sensor_metros") @db.Decimal(5, 2)
+  chaveHash          String    @map("chave_hash")
+  criadaEm           DateTime  @default(now()) @map("criada_em") @db.Timestamptz(3)
+  leituras           Leitura[]
+
+  @@map("reguas")
+}
+
+model Leitura {
+  id                  BigInt   @id @default(autoincrement())
+  reguaId             String   @map("regua_id")
+  nivelMetros         Decimal  @map("nivel_metros") @db.Decimal(5, 2)
+  medidaEm            DateTime @map("medida_em") @db.Timestamptz(3)
+  recebidaEm          DateTime @default(now()) @map("recebida_em") @db.Timestamptz(3)
+  bateriaPercentual   Int?     @map("bateria_percentual")
+  regua               Regua    @relation(fields: [reguaId], references: [id], onDelete: Cascade)
+
+  @@index([reguaId, medidaEm(sort: Desc)])
+  @@map("leituras")
+}
+
+enum Severidade {
+  PERIGO_POTENCIAL
+  PERIGO
+  GRANDE_PERIGO
+
+  @@map("severidade")
+}
+
+model Aviso {
+  id           String     @id
+  titulo       String
+  severidade   Severidade
+  inicio       DateTime   @db.Timestamptz(3)
+  fim          DateTime   @db.Timestamptz(3)
+  riscos       String[]
+  instrucoes   String[]
+  municipios   String[]
+  atualizadoEm DateTime   @map("atualizado_em") @db.Timestamptz(3)
+
+  @@index([municipios], type: Gin)
+  @@map("avisos")
+}
+
+model Sincronizacao {
+  id         Int      @id @default(autoincrement())
+  fonte      String
+  feitaEm    DateTime @map("feita_em") @db.Timestamptz(3)
+  sucesso    Boolean
+  quantidade Int
+  erro       String?
+
+  @@map("sincronizacoes")
+}

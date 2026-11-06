@@ -1,0 +1,168 @@
+# Elo Alertas
+
+Serviço de SOA do projeto Elo (Global Solution 2026.2, FIAP). O Elo é um app que faz a chamada das ruas de um bairro durante chuva forte. Este serviço cuida de duas coisas e só delas:
+
+1. **Sensor**: recebe as leituras da régua de nível (ESP32 com sensor ultrassônico) e devolve a última leitura e o histórico.
+2. **Avisos**: baixa os avisos do INMET (cerca de 580 KB, Brasil inteiro), guarda no banco e devolve só os avisos de um município (código IBGE), em poucos bytes.
+
+As chamadas, as ruas e os planos do bairro ficam em outro serviço, em C#.
+
+## Onde entra no Elo
+
+```mermaid
+flowchart LR
+    ESP[ESP32 com sensor] -->|POST /leituras| ALERTAS[Elo Alertas]
+    APP[App Elo - Expo] -->|GET /regua, GET /avisos| ALERTAS
+    APP -->|chamadas, ruas, planos| BAIRRO[API do bairro - C#]
+    ALERTAS -->|baixa avisos ativos| INMET[INMET]
+    ALERTAS --- DB[(PostgreSQL)]
+```
+
+## Como rodar do zero
+
+Precisa de Node 24 e Docker.
+
+1. Instale as dependências: `npm install`
+2. Crie o arquivo de ambiente: `cp .env.example .env` (e troque `CHAVE_REGUA_EXEMPLO` por uma chave sua)
+3. Suba o Postgres (container `elo-alertas-db`, porta 54340): `npm run db:subir`
+4. Aplique as migrações: `npm run db:migrar`
+5. Crie a régua de exemplo e leituras fictícias: `npm run db:seed`
+6. Suba o serviço: `npm run dev` (porta 3040)
+7. Abra a documentação em <http://localhost:3040/docs>
+
+Para parar o banco sem apagar os dados: `npm run db:parar`.
+
+Exemplo de envio do ESP32 (use a chave do seu `.env`):
+
+```bash
+curl -i -X POST http://localhost:3040/leituras \
+  -H 'Content-Type: application/json' \
+  -H 'X-Chave-Dispositivo: troque-esta-chave-de-exemplo' \
+  -d '{"reguaId":"regua-exemplo","nivelMetros":0.87,"bateriaPercentual":91}'
+```
+
+### Variáveis de ambiente
+
+| Variável | Para que serve |
+| --- | --- |
+| `DATABASE_URL` | Conexão com o Postgres |
+| `PORTA` | Porta do serviço (padrão 3040) |
+| `CHAVE_REGUA_EXEMPLO` | Chave da régua de exemplo; o seed guarda só o hash sha256 |
+| `INMET_URL` | Endereço dos avisos ativos do INMET |
+| `AVISOS_VALIDADE_MIN` | Minutos até a sincronização com o INMET vencer (padrão 5) |
+
+## Endpoints
+
+A lista completa, com exemplos e respostas de erro, está em `/docs` (Swagger gerado das próprias rotas). Erros sempre vêm como `{ "erro": "codigo", "mensagem": "texto" }`.
+
+| Método e rota | O que faz |
+| --- | --- |
+| `GET /saude` | Diz se o serviço e o banco estão no ar (503 se o banco não responde) |
+| `GET /regua?reguaId=` | Última leitura da régua; sem `reguaId`, a primeira régua por id |
+| `GET /reguas` | Lista as réguas com a última leitura (nunca expõe a chave) |
+| `GET /reguas/{id}/leituras?horas=6` | Histórico, de 1 a 72 horas, até 500 itens |
+| `POST /leituras` | O ESP32 envia o nível; exige o header `X-Chave-Dispositivo` (204) |
+| `GET /avisos?codigoIbge=` | Avisos do INMET para o município, do mais grave ao mais leve |
+
+`GET /regua` e `GET /avisos` têm exatamente o formato que o app já lê. Em `GET /avisos`, o header `X-Avisos-Atualizados-Em` traz a hora da última sincronização com sucesso.
+
+Como o aviso é atualizado: o serviço lê do banco. Se a última sincronização com sucesso passou de `AVISOS_VALIDADE_MIN` minutos, baixa o INMET antes de responder e troca os avisos numa transação. Se o INMET falhar ou passar de 20 s, a falha fica registrada em `sincronizacoes` e a resposta usa o que já está no banco, sem os avisos que já terminaram. Depois de uma falha, o serviço espera 1 minuto antes de tentar o INMET de novo.
+
+## Princípios de SOA no código
+
+| Princípio | Onde aparece |
+| --- | --- |
+| Contrato padronizado | Schemas TypeBox em `src/http/rotas/` viram validação e OpenAPI; erros sempre no mesmo formato |
+| Baixo acoplamento | `src/dominio` não importa Fastify nem Prisma; a infra implementa as portas de `src/dominio/portas.ts` |
+| Abstração | O app recebe 6 rotas simples; baixar, normalizar e cachear o INMET fica escondido atrás de `GET /avisos` |
+| Reuso | Os casos de uso em `src/aplicacao` servem a qualquer entrada; `montarApp` e o `servidor.ts` usam os mesmos |
+| Autonomia | O serviço é dono do próprio banco e das próprias migrações; nenhum outro serviço lê as tabelas |
+| Sem estado entre chamadas | Cada requisição traz tudo de que precisa (chave, parâmetros); o estado fica no banco. Só a promessa de sincronização em andamento vive na memória |
+| Descoberta | `/docs`, `/docs/json` (OpenAPI) e `/saude` descrevem e verificam o serviço |
+| Composição | O app compõe este serviço com a API do bairro e o INMET; internamente, `listarAvisos` compõe repositório, sincronizador e regras do domínio |
+
+## Estrutura
+
+```
+src/
+  dominio/     entidades, regras puras e portas (regua.ts, aviso.ts, erros.ts, portas.ts)
+  aplicacao/   casos de uso (registrarLeitura, consultarRegua, listarHistorico, listarAvisos, sincronizarAvisos)
+  infra/       Prisma (repositórios) e INMET (fetch com timeout de 20 s)
+  http/        Fastify: montarApp, Swagger, tratamento de erro e rotas
+  servidor.ts  lê o ambiente, liga o Prisma e sobe a porta
+prisma/        schema, migrações e seed
+test/          unidade (memória) e integração (Postgres real)
+```
+
+## Modelo do banco
+
+```mermaid
+erDiagram
+    reguas ||--o{ leituras : recebe
+    reguas {
+        text id PK
+        text local
+        numeric limite_metros
+        numeric altura_sensor_metros
+        text chave_hash
+        timestamptz criada_em
+    }
+    leituras {
+        bigint id PK
+        text regua_id FK
+        numeric nivel_metros
+        timestamptz medida_em
+        timestamptz recebida_em
+        int bateria_percentual
+    }
+    avisos {
+        text id PK
+        text titulo
+        severidade severidade
+        timestamptz inicio
+        timestamptz fim
+        text[] riscos
+        text[] instrucoes
+        text[] municipios
+        timestamptz atualizado_em
+    }
+    sincronizacoes {
+        serial id PK
+        text fonte
+        timestamptz feita_em
+        boolean sucesso
+        int quantidade
+        text erro
+    }
+```
+
+Migrações (em `prisma/migrations`, aplicadas com `prisma migrate deploy`):
+
+1. `reguas_e_leituras`: tabelas `reguas` e `leituras`, com índice por régua e `medida_em` decrescente.
+2. `avisos_inmet`: enum `severidade`, tabelas `avisos` (com índice GIN em `municipios`) e `sincronizacoes`.
+
+A chave do dispositivo nunca é guardada: só o hash sha256, comparado com `crypto.timingSafeEqual`.
+
+## Testes
+
+- `npm test`: unidade, sem banco e sem rede (domínio e casos de uso com repositórios em memória, incluindo a fixture real do INMET).
+- `npm run test:integracao`: Postgres real do compose, banco `elo_alertas_teste` (as migrações são aplicadas antes). Precisa de `npm run db:subir`. A fonte do INMET é sempre uma versão falsa; nenhum teste usa a rede.
+- `npm run lint`: checagem de tipos (`tsc --noEmit`). `npm run build`: compila para `dist/`.
+
+## Evidências
+
+Em `docs/evidencias/`: saída dos testes, saída dos `curl` dos endpoints principais, o JSON do OpenAPI e o print do Swagger (`09-swagger.png`).
+
+## Integrantes
+
+| Nome | RM |
+| --- | --- |
+| João Victor |  |
+| Bruno |  |
+| Rodrigo |  |
+| Lucca |  |
+| Ruan |  |
+
+## Uso de IA
+
+A estrutura deste serviço foi gerada com Claude Code. O registro, o que a IA decidiu sozinha e o que a equipe precisa conferir estão em [`prompts.md`](./prompts.md).

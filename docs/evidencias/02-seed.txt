@@ -1,0 +1,6 @@
+$ npm run db:seed
+Environment variables loaded from .env
+Running seed command `tsx prisma/seed.ts` ...
+Seed pronto: regua-exemplo com 12 leituras.
+
+🌱  The seed command has been executed.
