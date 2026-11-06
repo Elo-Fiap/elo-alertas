@@ -1,9 +1,13 @@
 
+> elo-alertas@1.0.0 test
+> vitest run --maxWorkers=2 test/unidade
+
+
  RUN  v5.1.0 elo-alertas
 
 
  Test Files  3 passed (3)
-      Tests  41 passed (41)
-   Start at  02:40:27
-   Duration  184ms (import 39%, tests 26%, transform 24%, worker 10%)
+      Tests  44 passed (44)
+   Start at  07:35:09
+   Duration  127ms (import 39%, tests 33%, transform 18%, worker 9%)
 

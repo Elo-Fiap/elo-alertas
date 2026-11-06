@@ -1,5 +1,6 @@
 import { Type } from '@fastify/type-provider-typebox';
 import { listarAvisos } from '../../aplicacao/listarAvisos.js';
+import { gravidade, quandoDoAviso } from '../../dominio/aviso.js';
 import { SchemaErro, type DepsDoApp, type FastifyTypeBox } from '../tipos.js';
 
 const SchemaAviso = Type.Object({
@@ -7,6 +8,12 @@ const SchemaAviso = Type.Object({
   titulo: Type.String({ examples: ['Tempestade'] }),
   severidade: Type.Union([Type.Literal('Perigo Potencial'), Type.Literal('Perigo'), Type.Literal('Grande Perigo')], {
     description: 'Gravidade do aviso, da mais leve para a mais grave.',
+  }),
+  gravidade: Type.Union([Type.Literal(1), Type.Literal(2), Type.Literal(3)], {
+    description: '1 = Perigo Potencial, 2 = Perigo, 3 = Grande Perigo. O app ordena por este número.',
+  }),
+  quando: Type.Union([Type.Literal('hoje'), Type.Literal('futuro')], {
+    description: '"hoje" se o aviso já vale hoje (horário de Brasília); "futuro" se começa num dia seguinte.',
   }),
   inicio: Type.String({ format: 'date-time', examples: ['2026-11-05T03:01:00.000Z'] }),
   fim: Type.String({ format: 'date-time', examples: ['2026-11-06T02:59:00.000Z'] }),
@@ -55,6 +62,8 @@ export function rotasDeAvisos(
         id: a.id,
         titulo: a.titulo,
         severidade: a.severidade,
+        gravidade: gravidade(a.severidade) as 1 | 2 | 3,
+        quando: quandoDoAviso(a.inicio, extra.agora()),
         inicio: a.inicio.toISOString(),
         fim: a.fim.toISOString(),
         riscos: a.riscos,

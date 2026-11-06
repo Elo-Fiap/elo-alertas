@@ -27,7 +27,15 @@ describe('GET /avisos', () => {
     expect(r.statusCode).toBe(200);
     const lista = r.json();
     expect(lista.map((a: { id: string }) => a.id)).toEqual(['56273', '56272', '56278']);
-    expect(Object.keys(lista[0]).sort()).toEqual(['fim', 'id', 'inicio', 'instrucoes', 'riscos', 'severidade', 'titulo']);
+    expect(Object.keys(lista[0]).sort()).toEqual([
+      'fim', 'gravidade', 'id', 'inicio', 'instrucoes', 'quando', 'riscos', 'severidade', 'titulo',
+    ]);
+    // Mesmos campos do tipo Aviso do app: gravidade para ordenar, quando para separar hoje e futuro.
+    expect(lista.map((a: { gravidade: number; quando: string }) => [a.gravidade, a.quando])).toEqual([
+      [2, 'hoje'],
+      [1, 'hoje'],
+      [1, 'futuro'],
+    ]);
     expect(lista[0]).toMatchObject({
       titulo: 'Tempestade',
       severidade: 'Perigo',

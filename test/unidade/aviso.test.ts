@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { avisosDoMunicipio, converterListaPython, normalizarAvisosInmet } from '../../src/dominio/aviso.js';
+import { avisosDoMunicipio, converterListaPython, normalizarAvisosInmet, quandoDoAviso } from '../../src/dominio/aviso.js';
 
 const fixture: unknown = JSON.parse(readFileSync(new URL('../fixtures/inmet-ativos.json', import.meta.url), 'utf8'));
 const agora = new Date('2026-11-05T12:00:00Z');
@@ -112,5 +112,19 @@ describe('normalizarAvisosInmet (casos de borda)', () => {
     expect(() => normalizarAvisosInmet(null, agora)).toThrow(/formato inesperado/);
     expect(() => normalizarAvisosInmet({ erro: 'x' }, agora)).toThrow(/formato inesperado/);
     expect(normalizarAvisosInmet({ hoje: [], futuro: [] }, agora)).toEqual([]);
+  });
+});
+
+describe('quandoDoAviso (dia de Brasília)', () => {
+  const agora = new Date('2026-11-05T15:00:00Z'); // 12h de 05/11 em Brasília
+  it('começou ontem ou hoje é "hoje"', () => {
+    expect(quandoDoAviso(new Date('2026-11-04T10:00:00Z'), agora)).toBe('hoje');
+    expect(quandoDoAviso(new Date('2026-11-05T03:01:00Z'), agora)).toBe('hoje');
+  });
+  it('23h50 de hoje em Brasília ainda é "hoje", mesmo já sendo amanhã em UTC', () => {
+    expect(quandoDoAviso(new Date('2026-11-06T02:50:00Z'), agora)).toBe('hoje');
+  });
+  it('a partir da meia-noite de amanhã em Brasília é "futuro"', () => {
+    expect(quandoDoAviso(new Date('2026-11-06T03:00:00Z'), agora)).toBe('futuro');
   });
 });

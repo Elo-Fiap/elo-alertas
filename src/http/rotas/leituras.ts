@@ -1,5 +1,6 @@
 import { Type } from '@fastify/type-provider-typebox';
 import { registrarLeitura } from '../../aplicacao/registrarLeitura.js';
+import { DadoInvalido } from '../../dominio/erros.js';
 import { NIVEL_MAXIMO_METROS } from '../../dominio/regua.js';
 import { SchemaErro, type DepsDoApp, type FastifyTypeBox } from '../tipos.js';
 
@@ -9,8 +10,21 @@ export function rotasDeLeituras(app: FastifyTypeBox, deps: DepsDoApp, agora: () 
     {
       // O ESP32 manda a cada 30 s (10 s acima do limite): rota leve, sem linha de log por requisição.
       logLevel: 'warn',
+      // O Fastify converte tipos por padrão (null e false virariam 0). Um sensor com defeito que manda
+      // null não pode virar "rio seco": aqui o corpo é conferido antes dessa conversão.
+      preValidation: async (req) => {
+        const corpo = req.body as Record<string, unknown> | null;
+        if (typeof corpo !== 'object' || corpo === null) return;
+        if (typeof corpo.nivelMetros !== 'number') {
+          throw new DadoInvalido('O campo "nivelMetros" deve ser um número.');
+        }
+        if (corpo.bateriaPercentual !== undefined && typeof corpo.bateriaPercentual !== 'number') {
+          throw new DadoInvalido('O campo "bateriaPercentual" deve ser um número.');
+        }
+      },
       schema: {
         tags: ['sensor'],
+        security: [{ chaveDispositivo: [] }],
         summary: 'Registra uma leitura da régua',
         description:
           'Chamada pelo ESP32. Exige o header `X-Chave-Dispositivo`. Mais de 2 casas decimais em `nivelMetros` são arredondadas. Sem `medidaEm`, vale a hora do recebimento. Chave errada e régua inexistente dão o mesmo 401.',

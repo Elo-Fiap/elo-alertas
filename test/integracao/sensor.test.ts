@@ -87,6 +87,11 @@ describe('corpo inválido', () => {
     ['nível negativo', { reguaId: 'regua-exemplo', nivelMetros: -1 }],
     ['nível em texto', { reguaId: 'regua-exemplo', nivelMetros: 'alto' }],
     ['sem nível', { reguaId: 'regua-exemplo' }],
+    // Sem a checagem antes da validação, o Fastify converteria estes três para 0 ou 1.5 e gravaria.
+    ['nível null (sensor com defeito)', { reguaId: 'regua-exemplo', nivelMetros: null }],
+    ['nível booleano', { reguaId: 'regua-exemplo', nivelMetros: false }],
+    ['nível número em texto', { reguaId: 'regua-exemplo', nivelMetros: '1.5' }],
+    ['bateria null', { reguaId: 'regua-exemplo', nivelMetros: 1, bateriaPercentual: null }],
     ['sem reguaId', { nivelMetros: 1 }],
     ['bateria acima de 100', { reguaId: 'regua-exemplo', nivelMetros: 1, bateriaPercentual: 101 }],
     ['bateria negativa', { reguaId: 'regua-exemplo', nivelMetros: 1, bateriaPercentual: -5 }],
@@ -99,6 +104,14 @@ describe('corpo inválido', () => {
     expect(r.json().erro).toBe('dado_invalido');
     expect(typeof r.json().mensagem).toBe('string');
     expect(await amb.prisma.leitura.count()).toBe(0);
+  });
+
+  it('a última leitura é a última que chegou, mesmo com o relógio do ESP32 adiantado', async () => {
+    const adiantado = new Date(Date.now() + 4 * 60_000).toISOString();
+    expect((await postar({ reguaId: 'regua-exemplo', nivelMetros: 0.5, medidaEm: adiantado })).statusCode).toBe(204);
+    expect((await postar({ reguaId: 'regua-exemplo', nivelMetros: 1.7 })).statusCode).toBe(204);
+    const r = await amb.app.inject({ url: '/regua?reguaId=regua-exemplo' });
+    expect(r.json().nivelMetros).toBe(1.7);
   });
 
   it('medidaEm 4 min no futuro ainda passa', async () => {

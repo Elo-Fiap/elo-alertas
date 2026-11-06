@@ -7,7 +7,7 @@
 
 
  Test Files  3 passed (3)
-      Tests  33 passed (33)
-   Start at  02:39:51
-   Duration  3.77s (import 49%, tests 48%, transform 3%, worker 1%)
+      Tests  38 passed (38)
+   Start at  07:35:10
+   Duration  1.64s (tests 59%, import 38%, transform 2%)
 

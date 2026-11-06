@@ -23,7 +23,8 @@ export class LeiturasEmMemoria implements RepositorioLeituras {
     this.itens.push(leitura);
   }
   async ultima(reguaId: string) {
-    return this.doRegua(reguaId)[0] ?? null;
+    // Igual ao Prisma: a última que chegou, não a de medidaEm mais alta.
+    return this.itens.filter((l) => l.reguaId === reguaId).at(-1) ?? null;
   }
   async historico(reguaId: string, desde: Date, limite: number) {
     return this.doRegua(reguaId)

@@ -1,6 +1,13 @@
-$ npm run db:seed
+
+> elo-alertas@1.0.0 db:seed
+> prisma db seed
+
+warn The configuration property `package.json#prisma` is deprecated and will be removed in Prisma 7. Please migrate to a Prisma config file (e.g., `prisma.config.ts`).
+For more information, see: https://pris.ly/prisma-config
+
 Environment variables loaded from .env
 Running seed command `tsx prisma/seed.ts` ...
-Seed pronto: regua-exemplo com 12 leituras.
+Atenção: CHAVE_REGUA_EXEMPLO ainda é a do .env.example. Serve para testar no seu computador, nunca num servidor público.
+Seed pronto: regua-exemplo já tinha leituras, nenhuma foi apagada nem criada.
 
 🌱  The seed command has been executed.

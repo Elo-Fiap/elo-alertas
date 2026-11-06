@@ -32,6 +32,7 @@ model Leitura {
   regua               Regua    @relation(fields: [reguaId], references: [id], onDelete: Cascade)
 
   @@index([reguaId, medidaEm(sort: Desc)])
+  @@index([reguaId, recebidaEm(sort: Desc)])
   @@map("leituras")
 }
 

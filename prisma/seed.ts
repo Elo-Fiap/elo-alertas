@@ -21,8 +21,16 @@ async function main(): Promise<void> {
     },
   });
 
-  // ~12 leituras fictícias da última hora (uma a cada 5 min), subindo devagar. Refaz as do seed.
-  await prisma.leitura.deleteMany({ where: { reguaId: 'regua-exemplo' } });
+  if (chave === 'troque-esta-chave-de-exemplo') {
+    console.warn('Atenção: CHAVE_REGUA_EXEMPLO ainda é a do .env.example. Serve para testar no seu computador, nunca num servidor público.');
+  }
+
+  // ~12 leituras fictícias da última hora (uma a cada 5 min), subindo devagar.
+  // Só entram com a régua sem leitura nenhuma: rodar o seed de novo não apaga leituras do ESP32.
+  if ((await prisma.leitura.count({ where: { reguaId: 'regua-exemplo' } })) > 0) {
+    console.log('Seed pronto: regua-exemplo já tinha leituras, nenhuma foi apagada nem criada.');
+    return;
+  }
   const agora = Date.now();
   const niveis = [0.42, 0.44, 0.45, 0.49, 0.55, 0.61, 0.68, 0.74, 0.81, 0.86, 0.9, 0.93];
   await prisma.leitura.createMany({

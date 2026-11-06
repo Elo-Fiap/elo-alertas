@@ -1,709 +1,764 @@
 {
-    "openapi": "3.1.0",
-    "info": {
-        "title": "Elo Alertas",
-        "version": "1.0.0",
-        "description": "Serviço do Elo para o sensor e os avisos. Recebe as leituras da régua de nível (ESP32) e devolve, por município, os avisos do INMET. Respostas em JSON UTF-8, datas em ISO 8601."
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Elo Alertas",
+    "version": "1.0.0",
+    "description": "Serviço do Elo para o sensor e os avisos. Recebe as leituras da régua de nível (ESP32) e devolve, por município, os avisos do INMET. Respostas em JSON UTF-8, datas em ISO 8601."
+  },
+  "components": {
+    "securitySchemes": {
+      "chaveDispositivo": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Chave-Dispositivo",
+        "description": "Chave do ESP32 da régua. O banco guarda só o hash sha256."
+      }
     },
-    "components": {
-        "schemas": {}
+    "schemas": {}
+  },
+  "paths": {
+    "/saude": {
+      "get": {
+        "summary": "Saúde do serviço",
+        "tags": [
+          "sistema"
+        ],
+        "description": "Confere se o serviço está de pé e se o banco responde. Devolve 503 quando o banco não responde.",
+        "responses": {
+          "200": {
+            "description": "Serviço e banco de pé.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "status",
+                    "banco"
+                  ],
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "examples": [
+                        "ok"
+                      ]
+                    },
+                    "banco": {
+                      "type": "string",
+                      "examples": [
+                        "ok"
+                      ]
+                    }
+                  },
+                  "description": "Serviço e banco de pé."
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Banco não responde.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "status",
+                    "banco"
+                  ],
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "examples": [
+                        "ok"
+                      ]
+                    },
+                    "banco": {
+                      "type": "string",
+                      "examples": [
+                        "ok"
+                      ]
+                    }
+                  },
+                  "description": "Banco não responde."
+                }
+              }
+            }
+          }
+        }
+      }
     },
-    "paths": {
-        "/saude": {
-            "get": {
-                "summary": "Saúde do serviço",
-                "tags": [
-                    "sistema"
-                ],
-                "description": "Confere se o serviço está de pé e se o banco responde. Devolve 503 quando o banco não responde.",
-                "responses": {
-                    "200": {
-                        "description": "Serviço e banco de pé.",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "required": [
-                                        "status",
-                                        "banco"
-                                    ],
-                                    "properties": {
-                                        "status": {
-                                            "type": "string",
-                                            "examples": [
-                                                "ok"
-                                            ]
-                                        },
-                                        "banco": {
-                                            "type": "string",
-                                            "examples": [
-                                                "ok"
-                                            ]
-                                        }
-                                    },
-                                    "description": "Serviço e banco de pé."
-                                }
-                            }
-                        }
+    "/regua": {
+      "get": {
+        "summary": "Última leitura da régua",
+        "tags": [
+          "sensor"
+        ],
+        "description": "Devolve a última leitura da régua. Sem `reguaId`, usa a primeira régua por id. 404 se a régua não existe ou não tem leitura.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "example": "regua-exemplo",
+            "in": "query",
+            "name": "reguaId",
+            "required": false,
+            "description": "Identificador da régua."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Última leitura de uma régua. É o formato que o app do Elo lê.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "reguaId",
+                    "local",
+                    "nivelMetros",
+                    "limiteMetros",
+                    "medidaEm"
+                  ],
+                  "properties": {
+                    "reguaId": {
+                      "type": "string",
+                      "description": "Identificador da régua.",
+                      "examples": [
+                        "regua-exemplo"
+                      ]
                     },
-                    "503": {
-                        "description": "Banco não responde.",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "required": [
-                                        "status",
-                                        "banco"
-                                    ],
-                                    "properties": {
-                                        "status": {
-                                            "type": "string",
-                                            "examples": [
-                                                "ok"
-                                            ]
-                                        },
-                                        "banco": {
-                                            "type": "string",
-                                            "examples": [
-                                                "ok"
-                                            ]
-                                        }
-                                    },
-                                    "description": "Banco não responde."
-                                }
-                            }
-                        }
+                    "local": {
+                      "type": "string",
+                      "description": "Onde a régua está instalada.",
+                      "examples": [
+                        "Córrego do bairro de exemplo"
+                      ]
+                    },
+                    "nivelMetros": {
+                      "type": "number",
+                      "description": "Nível da água em metros.",
+                      "examples": [
+                        0.45
+                      ]
+                    },
+                    "limiteMetros": {
+                      "type": "number",
+                      "description": "Nível em metros a partir do qual a rua é considerada em risco.",
+                      "examples": [
+                        1.2
+                      ]
+                    },
+                    "medidaEm": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "Quando o sensor mediu (ISO 8601 com fuso).",
+                      "examples": [
+                        "2026-11-06T09:30:00.000Z"
+                      ]
                     }
+                  },
+                  "description": "Última leitura de uma régua. É o formato que o app do Elo lê."
                 }
+              }
             }
-        },
-        "/regua": {
-            "get": {
-                "summary": "Última leitura da régua",
-                "tags": [
-                    "sensor"
-                ],
-                "description": "Devolve a última leitura da régua. Sem `reguaId`, usa a primeira régua por id. 404 se a régua não existe ou não tem leitura.",
-                "parameters": [
-                    {
-                        "schema": {
-                            "type": "string"
-                        },
-                        "example": "regua-exemplo",
-                        "in": "query",
-                        "name": "reguaId",
-                        "required": false,
-                        "description": "Identificador da régua."
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Última leitura de uma régua. É o formato que o app do Elo lê.",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "required": [
-                                        "reguaId",
-                                        "local",
-                                        "nivelMetros",
-                                        "limiteMetros",
-                                        "medidaEm"
-                                    ],
-                                    "properties": {
-                                        "reguaId": {
-                                            "type": "string",
-                                            "description": "Identificador da régua.",
-                                            "examples": [
-                                                "regua-exemplo"
-                                            ]
-                                        },
-                                        "local": {
-                                            "type": "string",
-                                            "description": "Onde a régua está instalada.",
-                                            "examples": [
-                                                "Córrego do bairro de exemplo"
-                                            ]
-                                        },
-                                        "nivelMetros": {
-                                            "type": "number",
-                                            "description": "Nível da água em metros.",
-                                            "examples": [
-                                                0.45
-                                            ]
-                                        },
-                                        "limiteMetros": {
-                                            "type": "number",
-                                            "description": "Nível em metros a partir do qual a rua é considerada em risco.",
-                                            "examples": [
-                                                1.2
-                                            ]
-                                        },
-                                        "medidaEm": {
-                                            "type": "string",
-                                            "format": "date-time",
-                                            "description": "Quando o sensor mediu (ISO 8601 com fuso).",
-                                            "examples": [
-                                                "2026-11-06T09:30:00.000Z"
-                                            ]
-                                        }
-                                    },
-                                    "description": "Última leitura de uma régua. É o formato que o app do Elo lê."
-                                }
-                            }
-                        }
+          },
+          "404": {
+            "description": "Régua inexistente ou sem leitura.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "erro",
+                    "mensagem"
+                  ],
+                  "properties": {
+                    "erro": {
+                      "type": "string",
+                      "description": "Código do erro, estável para o cliente tratar.",
+                      "examples": [
+                        "nao_encontrado"
+                      ]
                     },
-                    "404": {
-                        "description": "Régua inexistente ou sem leitura.",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "required": [
-                                        "erro",
-                                        "mensagem"
-                                    ],
-                                    "properties": {
-                                        "erro": {
-                                            "type": "string",
-                                            "description": "Código do erro, estável para o cliente tratar.",
-                                            "examples": [
-                                                "nao_encontrado"
-                                            ]
-                                        },
-                                        "mensagem": {
-                                            "type": "string",
-                                            "description": "Texto em português para mostrar ou registrar."
-                                        }
-                                    },
-                                    "description": "Régua inexistente ou sem leitura."
-                                }
-                            }
-                        }
+                    "mensagem": {
+                      "type": "string",
+                      "description": "Texto em português para mostrar ou registrar."
                     }
+                  },
+                  "description": "Régua inexistente ou sem leitura."
                 }
+              }
             }
-        },
-        "/reguas": {
-            "get": {
-                "summary": "Lista as réguas",
-                "tags": [
-                    "sensor"
-                ],
-                "description": "Cada régua com a última leitura. A chave do dispositivo nunca é exposta.",
-                "responses": {
-                    "200": {
-                        "description": "Réguas em ordem de id.",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "type": "object",
-                                        "required": [
-                                            "reguaId",
-                                            "local",
-                                            "limiteMetros",
-                                            "ultimaLeitura"
-                                        ],
-                                        "properties": {
-                                            "reguaId": {
-                                                "type": "string",
-                                                "description": "Identificador da régua.",
-                                                "examples": [
-                                                    "regua-exemplo"
-                                                ]
-                                            },
-                                            "local": {
-                                                "type": "string",
-                                                "description": "Onde a régua está instalada.",
-                                                "examples": [
-                                                    "Córrego do bairro de exemplo"
-                                                ]
-                                            },
-                                            "limiteMetros": {
-                                                "type": "number",
-                                                "description": "Nível em metros a partir do qual a rua é considerada em risco.",
-                                                "examples": [
-                                                    1.2
-                                                ]
-                                            },
-                                            "ultimaLeitura": {
-                                                "anyOf": [
-                                                    {
-                                                        "type": "object",
-                                                        "required": [
-                                                            "nivelMetros",
-                                                            "medidaEm",
-                                                            "acimaDoLimite"
-                                                        ],
-                                                        "properties": {
-                                                            "nivelMetros": {
-                                                                "type": "number",
-                                                                "description": "Nível da água em metros.",
-                                                                "examples": [
-                                                                    0.45
-                                                                ]
-                                                            },
-                                                            "medidaEm": {
-                                                                "type": "string",
-                                                                "format": "date-time",
-                                                                "description": "Quando o sensor mediu (ISO 8601 com fuso).",
-                                                                "examples": [
-                                                                    "2026-11-06T09:30:00.000Z"
-                                                                ]
-                                                            },
-                                                            "acimaDoLimite": {
-                                                                "type": "boolean",
-                                                                "description": "true quando o nível é maior ou igual ao limite."
-                                                            }
-                                                        }
-                                                    },
-                                                    {
-                                                        "type": "null"
-                                                    }
-                                                ],
-                                                "description": "Última leitura, ou null se a régua ainda não mandou nenhuma."
-                                            }
-                                        }
-                                    },
-                                    "description": "Réguas em ordem de id."
-                                }
+          }
+        }
+      }
+    },
+    "/reguas": {
+      "get": {
+        "summary": "Lista as réguas",
+        "tags": [
+          "sensor"
+        ],
+        "description": "Cada régua com a última leitura. A chave do dispositivo nunca é exposta.",
+        "responses": {
+          "200": {
+            "description": "Réguas em ordem de id.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "reguaId",
+                      "local",
+                      "limiteMetros",
+                      "ultimaLeitura"
+                    ],
+                    "properties": {
+                      "reguaId": {
+                        "type": "string",
+                        "description": "Identificador da régua.",
+                        "examples": [
+                          "regua-exemplo"
+                        ]
+                      },
+                      "local": {
+                        "type": "string",
+                        "description": "Onde a régua está instalada.",
+                        "examples": [
+                          "Córrego do bairro de exemplo"
+                        ]
+                      },
+                      "limiteMetros": {
+                        "type": "number",
+                        "description": "Nível em metros a partir do qual a rua é considerada em risco.",
+                        "examples": [
+                          1.2
+                        ]
+                      },
+                      "ultimaLeitura": {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "required": [
+                              "nivelMetros",
+                              "medidaEm",
+                              "acimaDoLimite"
+                            ],
+                            "properties": {
+                              "nivelMetros": {
+                                "type": "number",
+                                "description": "Nível da água em metros.",
+                                "examples": [
+                                  0.45
+                                ]
+                              },
+                              "medidaEm": {
+                                "type": "string",
+                                "format": "date-time",
+                                "description": "Quando o sensor mediu (ISO 8601 com fuso).",
+                                "examples": [
+                                  "2026-11-06T09:30:00.000Z"
+                                ]
+                              },
+                              "acimaDoLimite": {
+                                "type": "boolean",
+                                "description": "true quando o nível é maior ou igual ao limite."
+                              }
                             }
-                        }
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ],
+                        "description": "Última leitura, ou null se a régua ainda não mandou nenhuma."
+                      }
                     }
+                  },
+                  "description": "Réguas em ordem de id."
                 }
+              }
             }
-        },
-        "/reguas/{id}/leituras": {
-            "get": {
-                "summary": "Histórico de leituras",
-                "tags": [
-                    "sensor"
-                ],
-                "description": "Leituras das últimas `horas` (de 1 a 72, padrão 6), da mais nova para a mais velha, no máximo 500.",
-                "parameters": [
-                    {
-                        "schema": {
-                            "type": "integer",
-                            "minimum": 1,
-                            "maximum": 72,
-                            "default": 6
-                        },
-                        "in": "query",
-                        "name": "horas",
-                        "required": false,
-                        "description": "Janela em horas."
-                    },
-                    {
-                        "schema": {
-                            "type": "string"
-                        },
-                        "example": "regua-exemplo",
-                        "in": "path",
-                        "name": "id",
-                        "required": true,
-                        "description": "Identificador da régua."
+          }
+        }
+      }
+    },
+    "/reguas/{id}/leituras": {
+      "get": {
+        "summary": "Histórico de leituras",
+        "tags": [
+          "sensor"
+        ],
+        "description": "Leituras das últimas `horas` (de 1 a 72, padrão 6), da mais nova para a mais velha, no máximo 500.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 72,
+              "default": 6
+            },
+            "in": "query",
+            "name": "horas",
+            "required": false,
+            "description": "Janela em horas."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "example": "regua-exemplo",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Identificador da régua."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Leituras da mais nova para a mais velha.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "nivelMetros",
+                      "medidaEm",
+                      "bateriaPercentual",
+                      "acimaDoLimite"
+                    ],
+                    "properties": {
+                      "nivelMetros": {
+                        "type": "number",
+                        "description": "Nível da água em metros.",
+                        "examples": [
+                          0.45
+                        ]
+                      },
+                      "medidaEm": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "Quando o sensor mediu (ISO 8601 com fuso).",
+                        "examples": [
+                          "2026-11-06T09:30:00.000Z"
+                        ]
+                      },
+                      "bateriaPercentual": {
+                        "anyOf": [
+                          {
+                            "type": "integer"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ],
+                        "description": "Carga da bateria, se o dispositivo informou."
+                      },
+                      "acimaDoLimite": {
+                        "type": "boolean"
+                      }
                     }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Leituras da mais nova para a mais velha.",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "type": "object",
-                                        "required": [
-                                            "nivelMetros",
-                                            "medidaEm",
-                                            "bateriaPercentual",
-                                            "acimaDoLimite"
-                                        ],
-                                        "properties": {
-                                            "nivelMetros": {
-                                                "type": "number",
-                                                "description": "Nível da água em metros.",
-                                                "examples": [
-                                                    0.45
-                                                ]
-                                            },
-                                            "medidaEm": {
-                                                "type": "string",
-                                                "format": "date-time",
-                                                "description": "Quando o sensor mediu (ISO 8601 com fuso).",
-                                                "examples": [
-                                                    "2026-11-06T09:30:00.000Z"
-                                                ]
-                                            },
-                                            "bateriaPercentual": {
-                                                "anyOf": [
-                                                    {
-                                                        "type": "integer"
-                                                    },
-                                                    {
-                                                        "type": "null"
-                                                    }
-                                                ],
-                                                "description": "Carga da bateria, se o dispositivo informou."
-                                            },
-                                            "acimaDoLimite": {
-                                                "type": "boolean"
-                                            }
-                                        }
-                                    },
-                                    "description": "Leituras da mais nova para a mais velha."
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "`horas` fora de 1 a 72.",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "required": [
-                                        "erro",
-                                        "mensagem"
-                                    ],
-                                    "properties": {
-                                        "erro": {
-                                            "type": "string",
-                                            "description": "Código do erro, estável para o cliente tratar.",
-                                            "examples": [
-                                                "nao_encontrado"
-                                            ]
-                                        },
-                                        "mensagem": {
-                                            "type": "string",
-                                            "description": "Texto em português para mostrar ou registrar."
-                                        }
-                                    },
-                                    "description": "`horas` fora de 1 a 72."
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Régua inexistente.",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "required": [
-                                        "erro",
-                                        "mensagem"
-                                    ],
-                                    "properties": {
-                                        "erro": {
-                                            "type": "string",
-                                            "description": "Código do erro, estável para o cliente tratar.",
-                                            "examples": [
-                                                "nao_encontrado"
-                                            ]
-                                        },
-                                        "mensagem": {
-                                            "type": "string",
-                                            "description": "Texto em português para mostrar ou registrar."
-                                        }
-                                    },
-                                    "description": "Régua inexistente."
-                                }
-                            }
-                        }
-                    }
+                  },
+                  "description": "Leituras da mais nova para a mais velha."
                 }
+              }
             }
-        },
-        "/leituras": {
-            "post": {
-                "summary": "Registra uma leitura da régua",
-                "tags": [
-                    "sensor"
-                ],
-                "description": "Chamada pelo ESP32. Exige o header `X-Chave-Dispositivo`. Mais de 2 casas decimais em `nivelMetros` são arredondadas. Sem `medidaEm`, vale a hora do recebimento. Chave errada e régua inexistente dão o mesmo 401.",
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "required": [
-                                    "reguaId",
-                                    "nivelMetros"
-                                ],
-                                "properties": {
-                                    "reguaId": {
-                                        "type": "string",
-                                        "minLength": 1,
-                                        "description": "Identificador da régua.",
-                                        "examples": [
-                                            "regua-exemplo"
-                                        ]
-                                    },
-                                    "nivelMetros": {
-                                        "type": "number",
-                                        "minimum": 0,
-                                        "maximum": 20,
-                                        "description": "Nível da água em metros (0 a 20).",
-                                        "examples": [
-                                            0.45
-                                        ]
-                                    },
-                                    "medidaEm": {
-                                        "type": "string",
-                                        "format": "date-time",
-                                        "description": "Quando o sensor mediu. Aceita até 5 minutos no futuro.",
-                                        "examples": [
-                                            "2026-11-06T09:30:00-03:00"
-                                        ]
-                                    },
-                                    "bateriaPercentual": {
-                                        "type": "number",
-                                        "minimum": 0,
-                                        "maximum": 100,
-                                        "description": "Carga da bateria (0 a 100).",
-                                        "examples": [
-                                            87
-                                        ]
-                                    }
-                                }
-                            }
-                        }
-                    }
-                },
-                "parameters": [
-                    {
-                        "schema": {
-                            "type": "string"
-                        },
-                        "example": "troque-esta-chave-de-exemplo",
-                        "in": "header",
-                        "name": "x-chave-dispositivo",
-                        "required": false,
-                        "description": "Chave do dispositivo da régua."
-                    }
-                ],
-                "responses": {
-                    "204": {
-                        "description": "Leitura guardada."
+          },
+          "400": {
+            "description": "`horas` fora de 1 a 72.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "erro",
+                    "mensagem"
+                  ],
+                  "properties": {
+                    "erro": {
+                      "type": "string",
+                      "description": "Código do erro, estável para o cliente tratar.",
+                      "examples": [
+                        "nao_encontrado"
+                      ]
                     },
-                    "400": {
-                        "description": "Corpo inválido (nível, bateria ou data fora das regras).",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "required": [
-                                        "erro",
-                                        "mensagem"
-                                    ],
-                                    "properties": {
-                                        "erro": {
-                                            "type": "string",
-                                            "description": "Código do erro, estável para o cliente tratar.",
-                                            "examples": [
-                                                "nao_encontrado"
-                                            ]
-                                        },
-                                        "mensagem": {
-                                            "type": "string",
-                                            "description": "Texto em português para mostrar ou registrar."
-                                        }
-                                    },
-                                    "description": "Corpo inválido (nível, bateria ou data fora das regras)."
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Chave ausente ou inválida, ou régua inexistente.",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "required": [
-                                        "erro",
-                                        "mensagem"
-                                    ],
-                                    "properties": {
-                                        "erro": {
-                                            "type": "string",
-                                            "description": "Código do erro, estável para o cliente tratar.",
-                                            "examples": [
-                                                "nao_encontrado"
-                                            ]
-                                        },
-                                        "mensagem": {
-                                            "type": "string",
-                                            "description": "Texto em português para mostrar ou registrar."
-                                        }
-                                    },
-                                    "description": "Chave ausente ou inválida, ou régua inexistente."
-                                }
-                            }
-                        }
+                    "mensagem": {
+                      "type": "string",
+                      "description": "Texto em português para mostrar ou registrar."
                     }
+                  },
+                  "description": "`horas` fora de 1 a 72."
                 }
+              }
             }
-        },
-        "/avisos": {
-            "get": {
-                "summary": "Avisos do INMET para um município",
-                "tags": [
-                    "avisos"
+          },
+          "404": {
+            "description": "Régua inexistente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "erro",
+                    "mensagem"
+                  ],
+                  "properties": {
+                    "erro": {
+                      "type": "string",
+                      "description": "Código do erro, estável para o cliente tratar.",
+                      "examples": [
+                        "nao_encontrado"
+                      ]
+                    },
+                    "mensagem": {
+                      "type": "string",
+                      "description": "Texto em português para mostrar ou registrar."
+                    }
+                  },
+                  "description": "Régua inexistente."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/leituras": {
+      "post": {
+        "summary": "Registra uma leitura da régua",
+        "tags": [
+          "sensor"
+        ],
+        "description": "Chamada pelo ESP32. Exige o header `X-Chave-Dispositivo`. Mais de 2 casas decimais em `nivelMetros` são arredondadas. Sem `medidaEm`, vale a hora do recebimento. Chave errada e régua inexistente dão o mesmo 401.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "reguaId",
+                  "nivelMetros"
                 ],
-                "description": "Devolve só os avisos que cobrem o município, do mais grave ao mais leve. Lê do banco; se a última sincronização com o INMET passou de `AVISOS_VALIDADE_MIN` minutos, sincroniza antes de responder. Se o INMET falhar, devolve o que está guardado. O header `X-Avisos-Atualizados-Em` traz a hora da última sincronização com sucesso.",
-                "parameters": [
-                    {
-                        "schema": {
+                "properties": {
+                  "reguaId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Identificador da régua.",
+                    "examples": [
+                      "regua-exemplo"
+                    ]
+                  },
+                  "nivelMetros": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 20,
+                    "description": "Nível da água em metros (0 a 20).",
+                    "examples": [
+                      0.45
+                    ]
+                  },
+                  "medidaEm": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Quando o sensor mediu. Aceita até 5 minutos no futuro.",
+                    "examples": [
+                      "2026-11-06T09:30:00-03:00"
+                    ]
+                  },
+                  "bateriaPercentual": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 100,
+                    "description": "Carga da bateria (0 a 100).",
+                    "examples": [
+                      87
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "example": "troque-esta-chave-de-exemplo",
+            "in": "header",
+            "name": "x-chave-dispositivo",
+            "required": false,
+            "description": "Chave do dispositivo da régua."
+          }
+        ],
+        "security": [
+          {
+            "chaveDispositivo": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Leitura guardada."
+          },
+          "400": {
+            "description": "Corpo inválido (nível, bateria ou data fora das regras).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "erro",
+                    "mensagem"
+                  ],
+                  "properties": {
+                    "erro": {
+                      "type": "string",
+                      "description": "Código do erro, estável para o cliente tratar.",
+                      "examples": [
+                        "nao_encontrado"
+                      ]
+                    },
+                    "mensagem": {
+                      "type": "string",
+                      "description": "Texto em português para mostrar ou registrar."
+                    }
+                  },
+                  "description": "Corpo inválido (nível, bateria ou data fora das regras)."
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Chave ausente ou inválida, ou régua inexistente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "erro",
+                    "mensagem"
+                  ],
+                  "properties": {
+                    "erro": {
+                      "type": "string",
+                      "description": "Código do erro, estável para o cliente tratar.",
+                      "examples": [
+                        "nao_encontrado"
+                      ]
+                    },
+                    "mensagem": {
+                      "type": "string",
+                      "description": "Texto em português para mostrar ou registrar."
+                    }
+                  },
+                  "description": "Chave ausente ou inválida, ou régua inexistente."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/avisos": {
+      "get": {
+        "summary": "Avisos do INMET para um município",
+        "tags": [
+          "avisos"
+        ],
+        "description": "Devolve só os avisos que cobrem o município, do mais grave ao mais leve. Lê do banco; se a última sincronização com o INMET passou de `AVISOS_VALIDADE_MIN` minutos, sincroniza antes de responder. Se o INMET falhar, devolve o que está guardado. O header `X-Avisos-Atualizados-Em` traz a hora da última sincronização com sucesso.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9]{7}$"
+            },
+            "example": "3550308",
+            "in": "query",
+            "name": "codigoIbge",
+            "required": true,
+            "description": "Código IBGE do município, exatamente 7 dígitos."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Avisos do município; lista vazia se não há nenhum.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "id",
+                      "titulo",
+                      "severidade",
+                      "gravidade",
+                      "quando",
+                      "inicio",
+                      "fim",
+                      "riscos",
+                      "instrucoes"
+                    ],
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "description": "Identificador do aviso no INMET.",
+                        "examples": [
+                          "56273"
+                        ]
+                      },
+                      "titulo": {
+                        "type": "string",
+                        "examples": [
+                          "Tempestade"
+                        ]
+                      },
+                      "severidade": {
+                        "anyOf": [
+                          {
                             "type": "string",
-                            "pattern": "^[0-9]{7}$"
+                            "enum": [
+                              "Perigo Potencial"
+                            ]
+                          },
+                          {
+                            "type": "string",
+                            "enum": [
+                              "Perigo"
+                            ]
+                          },
+                          {
+                            "type": "string",
+                            "enum": [
+                              "Grande Perigo"
+                            ]
+                          }
+                        ],
+                        "description": "Gravidade do aviso, da mais leve para a mais grave."
+                      },
+                      "gravidade": {
+                        "anyOf": [
+                          {
+                            "type": "number",
+                            "enum": [
+                              1
+                            ]
+                          },
+                          {
+                            "type": "number",
+                            "enum": [
+                              2
+                            ]
+                          },
+                          {
+                            "type": "number",
+                            "enum": [
+                              3
+                            ]
+                          }
+                        ],
+                        "description": "1 = Perigo Potencial, 2 = Perigo, 3 = Grande Perigo. O app ordena por este número."
+                      },
+                      "quando": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "enum": [
+                              "hoje"
+                            ]
+                          },
+                          {
+                            "type": "string",
+                            "enum": [
+                              "futuro"
+                            ]
+                          }
+                        ],
+                        "description": "\"hoje\" se o aviso já vale hoje (horário de Brasília); \"futuro\" se começa num dia seguinte."
+                      },
+                      "inicio": {
+                        "type": "string",
+                        "format": "date-time",
+                        "examples": [
+                          "2026-11-05T03:01:00.000Z"
+                        ]
+                      },
+                      "fim": {
+                        "type": "string",
+                        "format": "date-time",
+                        "examples": [
+                          "2026-11-06T02:59:00.000Z"
+                        ]
+                      },
+                      "riscos": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
                         },
-                        "example": "3550308",
-                        "in": "query",
-                        "name": "codigoIbge",
-                        "required": true,
-                        "description": "Código IBGE do município, exatamente 7 dígitos."
+                        "description": "Riscos descritos pelo INMET."
+                      },
+                      "instrucoes": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        },
+                        "description": "O que fazer, segundo o INMET."
+                      }
                     }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Avisos do município; lista vazia se não há nenhum.",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "type": "object",
-                                        "required": [
-                                            "id",
-                                            "titulo",
-                                            "severidade",
-                                            "inicio",
-                                            "fim",
-                                            "riscos",
-                                            "instrucoes"
-                                        ],
-                                        "properties": {
-                                            "id": {
-                                                "type": "string",
-                                                "description": "Identificador do aviso no INMET.",
-                                                "examples": [
-                                                    "56273"
-                                                ]
-                                            },
-                                            "titulo": {
-                                                "type": "string",
-                                                "examples": [
-                                                    "Tempestade"
-                                                ]
-                                            },
-                                            "severidade": {
-                                                "anyOf": [
-                                                    {
-                                                        "type": "string",
-                                                        "enum": [
-                                                            "Perigo Potencial"
-                                                        ]
-                                                    },
-                                                    {
-                                                        "type": "string",
-                                                        "enum": [
-                                                            "Perigo"
-                                                        ]
-                                                    },
-                                                    {
-                                                        "type": "string",
-                                                        "enum": [
-                                                            "Grande Perigo"
-                                                        ]
-                                                    }
-                                                ],
-                                                "description": "Gravidade do aviso, da mais leve para a mais grave."
-                                            },
-                                            "inicio": {
-                                                "type": "string",
-                                                "format": "date-time",
-                                                "examples": [
-                                                    "2026-11-05T03:01:00.000Z"
-                                                ]
-                                            },
-                                            "fim": {
-                                                "type": "string",
-                                                "format": "date-time",
-                                                "examples": [
-                                                    "2026-11-06T02:59:00.000Z"
-                                                ]
-                                            },
-                                            "riscos": {
-                                                "type": "array",
-                                                "items": {
-                                                    "type": "string"
-                                                },
-                                                "description": "Riscos descritos pelo INMET."
-                                            },
-                                            "instrucoes": {
-                                                "type": "array",
-                                                "items": {
-                                                    "type": "string"
-                                                },
-                                                "description": "O que fazer, segundo o INMET."
-                                            }
-                                        }
-                                    },
-                                    "description": "Avisos do município; lista vazia se não há nenhum."
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "`codigoIbge` ausente ou fora do formato de 7 dígitos.",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "required": [
-                                        "erro",
-                                        "mensagem"
-                                    ],
-                                    "properties": {
-                                        "erro": {
-                                            "type": "string",
-                                            "description": "Código do erro, estável para o cliente tratar.",
-                                            "examples": [
-                                                "nao_encontrado"
-                                            ]
-                                        },
-                                        "mensagem": {
-                                            "type": "string",
-                                            "description": "Texto em português para mostrar ou registrar."
-                                        }
-                                    },
-                                    "description": "`codigoIbge` ausente ou fora do formato de 7 dígitos."
-                                }
-                            }
-                        }
-                    }
+                  },
+                  "description": "Avisos do município; lista vazia se não há nenhum."
                 }
+              }
             }
+          },
+          "400": {
+            "description": "`codigoIbge` ausente ou fora do formato de 7 dígitos.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "erro",
+                    "mensagem"
+                  ],
+                  "properties": {
+                    "erro": {
+                      "type": "string",
+                      "description": "Código do erro, estável para o cliente tratar.",
+                      "examples": [
+                        "nao_encontrado"
+                      ]
+                    },
+                    "mensagem": {
+                      "type": "string",
+                      "description": "Texto em português para mostrar ou registrar."
+                    }
+                  },
+                  "description": "`codigoIbge` ausente ou fora do formato de 7 dígitos."
+                }
+              }
+            }
+          }
         }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "sistema",
+      "description": "Saúde do serviço"
     },
-    "tags": [
-        {
-            "name": "sistema",
-            "description": "Saúde do serviço"
-        },
-        {
-            "name": "sensor",
-            "description": "Régua de nível e leituras"
-        },
-        {
-            "name": "avisos",
-            "description": "Avisos meteorológicos do INMET por município"
-        }
-    ]
+    {
+      "name": "sensor",
+      "description": "Régua de nível e leituras"
+    },
+    {
+      "name": "avisos",
+      "description": "Avisos meteorológicos do INMET por município"
+    }
+  ]
 }

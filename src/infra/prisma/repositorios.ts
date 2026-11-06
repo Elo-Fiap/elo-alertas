@@ -83,7 +83,7 @@ export class LeiturasPrisma implements RepositorioLeituras {
   }
 
   async ultima(reguaId: string): Promise<Leitura | null> {
-    const l = await this.prisma.leitura.findFirst({ where: { reguaId }, orderBy: { medidaEm: 'desc' } });
+    const l = await this.prisma.leitura.findFirst({ where: { reguaId }, orderBy: [{ recebidaEm: 'desc' }, { id: 'desc' }] });
     return l ? this.paraDominio(l) : null;
   }
 

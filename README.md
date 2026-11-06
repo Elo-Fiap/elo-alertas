@@ -27,7 +27,7 @@ Precisa de Node 24 e Docker.
 3. Suba o Postgres (container `elo-alertas-db`, porta 54340): `npm run db:subir`
 4. Aplique as migrações: `npm run db:migrar`
 5. Crie a régua de exemplo e leituras fictícias: `npm run db:seed`
-6. Suba o serviço: `npm run dev` (porta 3040)
+6. Suba o serviço: `npm run dev` (porta 3040). Para a versão compilada: `npm run build` e depois `npm start`
 7. Abra a documentação em <http://localhost:3040/docs>
 
 Para parar o banco sem apagar os dados: `npm run db:parar`.
@@ -59,14 +59,14 @@ A lista completa, com exemplos e respostas de erro, está em `/docs` (Swagger ge
 | --- | --- |
 | `GET /saude` | Diz se o serviço e o banco estão no ar (503 se o banco não responde) |
 | `GET /regua?reguaId=` | Última leitura da régua; sem `reguaId`, a primeira régua por id |
-| `GET /reguas` | Lista as réguas com a última leitura (nunca expõe a chave) |
+| `GET /reguas` | Lista as réguas com a última leitura (nunca expõe a chave; os ids são públicos, como o nome de uma rua) |
 | `GET /reguas/{id}/leituras?horas=6` | Histórico, de 1 a 72 horas, até 500 itens |
 | `POST /leituras` | O ESP32 envia o nível; exige o header `X-Chave-Dispositivo` (204) |
 | `GET /avisos?codigoIbge=` | Avisos do INMET para o município, do mais grave ao mais leve |
 
-`GET /regua` e `GET /avisos` têm exatamente o formato que o app já lê. Em `GET /avisos`, o header `X-Avisos-Atualizados-Em` traz a hora da última sincronização com sucesso.
+`GET /regua` tem exatamente o formato que o app já lê. Cada aviso de `GET /avisos` traz os campos do tipo `Aviso` do app (incluindo `gravidade` e `quando`); hoje o app ainda baixa o INMET direto, e passar a usar este serviço é trocar a URL e ler a lista no lugar de `{ hoje, futuro }`. Em `GET /avisos`, o header `X-Avisos-Atualizados-Em` traz a hora da última sincronização com sucesso.
 
-Como o aviso é atualizado: o serviço lê do banco. Se a última sincronização com sucesso passou de `AVISOS_VALIDADE_MIN` minutos, baixa o INMET antes de responder e troca os avisos numa transação. Se o INMET falhar ou passar de 20 s, a falha fica registrada em `sincronizacoes` e a resposta usa o que já está no banco, sem os avisos que já terminaram. Depois de uma falha, o serviço espera 1 minuto antes de tentar o INMET de novo.
+Como o aviso é atualizado: o serviço lê do banco. Se a última sincronização com sucesso passou de `AVISOS_VALIDADE_MIN` minutos, baixa o INMET antes de responder e troca os avisos numa transação. Se o INMET falhar ou passar de 8 s (o app desiste em 10 s), a falha fica registrada em `sincronizacoes` e a resposta usa o que já está no banco, sem os avisos que já terminaram. Depois de uma falha, o serviço espera 1 minuto antes de tentar o INMET de novo.
 
 ## Princípios de SOA no código
 
@@ -77,7 +77,7 @@ Como o aviso é atualizado: o serviço lê do banco. Se a última sincronizaçã
 | Abstração | O app recebe 6 rotas simples; baixar, normalizar e cachear o INMET fica escondido atrás de `GET /avisos` |
 | Reuso | Os casos de uso em `src/aplicacao` servem a qualquer entrada; `montarApp` e o `servidor.ts` usam os mesmos |
 | Autonomia | O serviço é dono do próprio banco e das próprias migrações; nenhum outro serviço lê as tabelas |
-| Sem estado entre chamadas | Cada requisição traz tudo de que precisa (chave, parâmetros); o estado fica no banco. Só a promessa de sincronização em andamento vive na memória |
+| Sem estado entre chamadas | Cada requisição traz tudo de que precisa (chave, parâmetros); o estado fica no banco. Só a sincronização em andamento e a hora da última falha do INMET vivem na memória |
 | Descoberta | `/docs`, `/docs/json` (OpenAPI) e `/saude` descrevem e verificam o serviço |
 | Composição | O app compõe este serviço com a API do bairro e o INMET; internamente, `listarAvisos` compõe repositório, sincronizador e regras do domínio |
 
@@ -87,7 +87,7 @@ Como o aviso é atualizado: o serviço lê do banco. Se a última sincronizaçã
 src/
   dominio/     entidades, regras puras e portas (regua.ts, aviso.ts, erros.ts, portas.ts)
   aplicacao/   casos de uso (registrarLeitura, consultarRegua, listarHistorico, listarAvisos, sincronizarAvisos)
-  infra/       Prisma (repositórios) e INMET (fetch com timeout de 20 s)
+  infra/       Prisma (repositórios) e INMET (fetch com timeout de 8 s)
   http/        Fastify: montarApp, Swagger, tratamento de erro e rotas
   servidor.ts  lê o ambiente, liga o Prisma e sobe a porta
 prisma/        schema, migrações e seed
@@ -140,6 +140,7 @@ Migrações (em `prisma/migrations`, aplicadas com `prisma migrate deploy`):
 
 1. `reguas_e_leituras`: tabelas `reguas` e `leituras`, com índice por régua e `medida_em` decrescente.
 2. `avisos_inmet`: enum `severidade`, tabelas `avisos` (com índice GIN em `municipios`) e `sincronizacoes`.
+3. `regras_no_banco`: escrita à mão, porque o Prisma não descreve `CHECK`. Nível entre 0 e 20 m, bateria entre 0 e 100, limite positivo, aviso com `fim` depois de `inicio`, e índice por `recebida_em` para achar a última leitura.
 
 A chave do dispositivo nunca é guardada: só o hash sha256, comparado com `crypto.timingSafeEqual`.
 
@@ -152,6 +153,12 @@ A chave do dispositivo nunca é guardada: só o hash sha256, comparado com `cryp
 ## Evidências
 
 Em `docs/evidencias/`: saída dos testes, saída dos `curl` dos endpoints principais, o JSON do OpenAPI e o print do Swagger (`09-swagger.png`).
+
+## Dados e custos
+
+- Nenhum dado pessoal: a régua, o local e as leituras do seed são fictícios. Os avisos são dados públicos do INMET, citados como fonte.
+- A chave do dispositivo nunca fica no repositório: vem do `.env`, e o banco guarda só o hash.
+- Custo zero: Postgres local no Docker e a API pública do INMET, sem chave.
 
 ## Integrantes
 

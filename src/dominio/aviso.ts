@@ -27,6 +27,16 @@ export function gravidade(severidade: Severidade): number {
   return GRAVIDADE[severidade];
 }
 
+/** Dia (AAAA-MM-DD) no horário de Brasília, que não tem horário de verão desde 2019. */
+function diaEmBrasilia(data: Date): string {
+  return new Date(data.getTime() - 3 * 60 * 60_000).toISOString().slice(0, 10);
+}
+
+/** "hoje" se o aviso começa hoje ou já começou (dia de Brasília); "futuro" se começa num dia seguinte. */
+export function quandoDoAviso(inicio: Date, agora: Date): 'hoje' | 'futuro' {
+  return diaEmBrasilia(inicio) <= diaEmBrasilia(agora) ? 'hoje' : 'futuro';
+}
+
 export function codigoIbgeValido(codigo: string): boolean {
   return CODIGO_IBGE.test(codigo);
 }

@@ -60,6 +60,16 @@ export async function montarApp(deps: DepsDoApp): Promise<FastifyInstance> {
         description:
           'Serviço do Elo para o sensor e os avisos. Recebe as leituras da régua de nível (ESP32) e devolve, por município, os avisos do INMET. Respostas em JSON UTF-8, datas em ISO 8601.',
       },
+      components: {
+        securitySchemes: {
+          chaveDispositivo: {
+            type: 'apiKey',
+            in: 'header',
+            name: 'X-Chave-Dispositivo',
+            description: 'Chave do ESP32 da régua. O banco guarda só o hash sha256.',
+          },
+        },
+      },
       tags: [
         { name: 'sistema', description: 'Saúde do serviço' },
         { name: 'sensor', description: 'Régua de nível e leituras' },
