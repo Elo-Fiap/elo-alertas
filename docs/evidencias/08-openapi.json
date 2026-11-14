@@ -107,7 +107,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Última leitura de uma régua. É o formato que o app do Elo lê.",
+            "description": "Última leitura de uma régua. É o formato que o app do Elo lê; os campos de localização são aditivos.",
             "content": {
               "application/json": {
                 "schema": {
@@ -117,7 +117,12 @@
                     "local",
                     "nivelMetros",
                     "limiteMetros",
-                    "medidaEm"
+                    "medidaEm",
+                    "ruaId",
+                    "codigoIbge",
+                    "latitude",
+                    "longitude",
+                    "atencaoMetros"
                   ],
                   "properties": {
                     "reguaId": {
@@ -155,9 +160,79 @@
                       "examples": [
                         "2026-11-06T09:30:00.000Z"
                       ]
+                    },
+                    "ruaId": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "description": "Id da rua na API do bairro, em texto.",
+                      "examples": [
+                        "7"
+                      ]
+                    },
+                    "codigoIbge": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "description": "Município da régua (código IBGE, 7 dígitos).",
+                      "examples": [
+                        "3550308"
+                      ]
+                    },
+                    "latitude": {
+                      "anyOf": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "description": "Latitude em graus decimais. Vem junto com a longitude, ou as duas são null.",
+                      "examples": [
+                        -23.476551
+                      ]
+                    },
+                    "longitude": {
+                      "anyOf": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "description": "Longitude em graus decimais. Vem junto com a latitude, ou as duas são null.",
+                      "examples": [
+                        -46.41135
+                      ]
+                    },
+                    "atencaoMetros": {
+                      "anyOf": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "description": "Nível em metros a partir do qual a régua pede atenção. Sempre menor que o limite.",
+                      "examples": [
+                        1
+                      ]
                     }
                   },
-                  "description": "Última leitura de uma régua. É o formato que o app do Elo lê."
+                  "description": "Última leitura de uma régua. É o formato que o app do Elo lê; os campos de localização são aditivos."
                 }
               }
             }
@@ -199,10 +274,23 @@
         "tags": [
           "sensor"
         ],
-        "description": "Cada régua com a última leitura. A chave do dispositivo nunca é exposta.",
+        "description": "Cada régua com a última leitura e a localização. Com `codigoIbge`, só as réguas do município. A chave do dispositivo nunca é exposta.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9]{7}$"
+            },
+            "example": "3550308",
+            "in": "query",
+            "name": "codigoIbge",
+            "required": false,
+            "description": "Filtra pelo município (código IBGE, exatamente 7 dígitos)."
+          }
+        ],
         "responses": {
           "200": {
-            "description": "Réguas em ordem de id.",
+            "description": "Réguas em ordem de id; lista vazia se o município não tem nenhuma.",
             "content": {
               "application/json": {
                 "schema": {
@@ -213,6 +301,11 @@
                       "reguaId",
                       "local",
                       "limiteMetros",
+                      "ruaId",
+                      "codigoIbge",
+                      "latitude",
+                      "longitude",
+                      "atencaoMetros",
                       "ultimaLeitura"
                     ],
                     "properties": {
@@ -235,6 +328,76 @@
                         "description": "Nível em metros a partir do qual a rua é considerada em risco.",
                         "examples": [
                           1.2
+                        ]
+                      },
+                      "ruaId": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ],
+                        "description": "Id da rua na API do bairro, em texto.",
+                        "examples": [
+                          "7"
+                        ]
+                      },
+                      "codigoIbge": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ],
+                        "description": "Município da régua (código IBGE, 7 dígitos).",
+                        "examples": [
+                          "3550308"
+                        ]
+                      },
+                      "latitude": {
+                        "anyOf": [
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ],
+                        "description": "Latitude em graus decimais. Vem junto com a longitude, ou as duas são null.",
+                        "examples": [
+                          -23.476551
+                        ]
+                      },
+                      "longitude": {
+                        "anyOf": [
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ],
+                        "description": "Longitude em graus decimais. Vem junto com a latitude, ou as duas são null.",
+                        "examples": [
+                          -46.41135
+                        ]
+                      },
+                      "atencaoMetros": {
+                        "anyOf": [
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ],
+                        "description": "Nível em metros a partir do qual a régua pede atenção. Sempre menor que o limite.",
+                        "examples": [
+                          1
                         ]
                       },
                       "ultimaLeitura": {
@@ -276,7 +439,35 @@
                       }
                     }
                   },
-                  "description": "Réguas em ordem de id."
+                  "description": "Réguas em ordem de id; lista vazia se o município não tem nenhuma."
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`codigoIbge` fora do formato de 7 dígitos.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "erro",
+                    "mensagem"
+                  ],
+                  "properties": {
+                    "erro": {
+                      "type": "string",
+                      "description": "Código do erro, estável para o cliente tratar.",
+                      "examples": [
+                        "nao_encontrado"
+                      ]
+                    },
+                    "mensagem": {
+                      "type": "string",
+                      "description": "Texto em português para mostrar ou registrar."
+                    }
+                  },
+                  "description": "`codigoIbge` fora do formato de 7 dígitos."
                 }
               }
             }

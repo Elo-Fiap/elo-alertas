@@ -3,11 +3,11 @@
 > vitest run --maxWorkers=2 test/unidade
 
 
- RUN  v5.1.0 elo-alertas
+ RUN  v5.1.0 /Users/jota/Library/Application Support/Claude/scratch-workspaces/9f53ff35-6c86-40eb-bc09-966b428a8abe/e196a90b-e640-45a6-8463-8ce551e69492/scratch-2026-11-10-02084e/elo-alertas
 
 
  Test Files  3 passed (3)
-      Tests  44 passed (44)
-   Start at  07:35:09
-   Duration  127ms (import 39%, tests 33%, transform 18%, worker 9%)
+      Tests  45 passed (45)
+   Start at  20:01:19
+   Duration  157ms (import 35%, transform 30%, tests 27%, worker 8%)
 

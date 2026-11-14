@@ -5,7 +5,7 @@ Serviço de SOA do projeto Elo (Global Solution 2026.2, FIAP). O Elo é um app q
 1. **Sensor**: recebe as leituras da régua de nível (ESP32 com sensor ultrassônico) e devolve a última leitura e o histórico.
 2. **Avisos**: baixa os avisos do INMET (cerca de 580 KB, Brasil inteiro), guarda no banco e devolve só os avisos de um município (código IBGE), em poucos bytes.
 
-As chamadas, as ruas e os planos do bairro ficam em outro serviço, em C#.
+As chamadas, as ruas e os planos do bairro ficam em outro serviço, em C# (`elo-api-csharp`), que também alimenta o painel web de administração (`elo-admin`). Este serviço não conversa com ele: cada régua só guarda o id da rua (`rua_id`) e o município (`codigo_ibge`), e quem junta as duas pontas é o app.
 
 ## Onde entra no Elo
 
@@ -14,6 +14,7 @@ flowchart LR
     ESP[ESP32 com sensor] -->|POST /leituras| ALERTAS[Elo Alertas]
     APP[App Elo - Expo] -->|GET /regua, GET /avisos| ALERTAS
     APP -->|chamadas, ruas, planos| BAIRRO[API do bairro - C#]
+    PAINEL[Painel web - elo-admin] -->|GET /api/admin/instantaneo| BAIRRO
     ALERTAS -->|baixa avisos ativos| INMET[INMET]
     ALERTAS --- DB[(PostgreSQL)]
 ```
@@ -58,13 +59,13 @@ A lista completa, com exemplos e respostas de erro, está em `/docs` (Swagger ge
 | Método e rota | O que faz |
 | --- | --- |
 | `GET /saude` | Diz se o serviço e o banco estão no ar (503 se o banco não responde) |
-| `GET /regua?reguaId=` | Última leitura da régua; sem `reguaId`, a primeira régua por id |
-| `GET /reguas` | Lista as réguas com a última leitura (nunca expõe a chave; os ids são públicos, como o nome de uma rua) |
+| `GET /regua?reguaId=` | Última leitura da régua, com rua, município, coordenada e nível de atenção; sem `reguaId`, a primeira régua por id |
+| `GET /reguas?codigoIbge=` | Lista as réguas com a última leitura e a localização; com `codigoIbge` (7 dígitos), só as do município; outro formato dá 400 (nunca expõe a chave; os ids são públicos, como o nome de uma rua) |
 | `GET /reguas/{id}/leituras?horas=6` | Histórico, de 1 a 72 horas, até 500 itens |
 | `POST /leituras` | O ESP32 envia o nível; exige o header `X-Chave-Dispositivo` (204) |
 | `GET /avisos?codigoIbge=` | Avisos do INMET para o município, do mais grave ao mais leve |
 
-`GET /regua` tem exatamente o formato que o app já lê. Cada aviso de `GET /avisos` traz os campos do tipo `Aviso` do app (incluindo `gravidade` e `quando`); hoje o app ainda baixa o INMET direto, e passar a usar este serviço é trocar a URL e ler a lista no lugar de `{ hoje, futuro }`. Em `GET /avisos`, o header `X-Avisos-Atualizados-Em` traz a hora da última sincronização com sucesso.
+`GET /regua` tem o formato que o app já lê, mais cinco campos opcionais: `ruaId`, `codigoIbge`, `latitude`, `longitude` e `atencaoMetros`. Todos saem `null` quando a régua não tem o dado, e a coordenada vem sempre em par. Quem lê a versão antiga ignora o que não conhece. Cada aviso de `GET /avisos` traz os campos do tipo `Aviso` do app (incluindo `gravidade` e `quando`); hoje o app ainda baixa o INMET direto, e passar a usar este serviço é trocar a URL e ler a lista no lugar de `{ hoje, futuro }`. Esses dados vêm do seed: não há rota para gravar a localização. Em `GET /avisos`, o header `X-Avisos-Atualizados-Em` traz a hora da última sincronização com sucesso.
 
 Como o aviso é atualizado: o serviço lê do banco. Se a última sincronização com sucesso passou de `AVISOS_VALIDADE_MIN` minutos, baixa o INMET antes de responder e troca os avisos numa transação. Se o INMET falhar ou passar de 8 s (o app desiste em 10 s), a falha fica registrada em `sincronizacoes` e a resposta usa o que já está no banco, sem os avisos que já terminaram. Depois de uma falha, o serviço espera 1 minuto antes de tentar o INMET de novo.
 
@@ -104,6 +105,11 @@ erDiagram
         text local
         numeric limite_metros
         numeric altura_sensor_metros
+        numeric atencao_metros
+        text rua_id
+        text codigo_ibge
+        numeric latitude
+        numeric longitude
         text chave_hash
         timestamptz criada_em
     }
@@ -142,6 +148,38 @@ Migrações (em `prisma/migrations`, aplicadas com `prisma migrate deploy`):
 2. `avisos_inmet`: enum `severidade`, tabelas `avisos` (com índice GIN em `municipios`) e `sincronizacoes`.
 3. `regras_no_banco`: escrita à mão, porque o Prisma não descreve `CHECK`. Nível entre 0 e 20 m, bateria entre 0 e 100, limite positivo, aviso com `fim` depois de `inicio`, e índice por `recebida_em` para achar a última leitura.
 
+4. `localizacao_e_atencao`: cinco colunas novas e opcionais em `reguas` (`rua_id`, `codigo_ibge`, `latitude`, `longitude`, `atencao_metros`), com `CHECK` à mão: coordenada em par e dentro do mapa, município com 7 dígitos e atenção maior que 0 e menor que o limite.
+
+Os campos novos da régua:
+
+| Coluna | Tipo | Para que serve |
+| --- | --- | --- |
+| `rua_id` | texto | Id da rua na API do bairro (em C#), em texto |
+| `codigo_ibge` | texto, 7 dígitos | Município da régua; é o filtro de `GET /reguas?codigoIbge=` |
+| `latitude`, `longitude` | `numeric(9,6)` | Onde a régua está; as duas ou nenhuma |
+| `atencao_metros` | `numeric(5,2)` | Nível a partir do qual a régua pede atenção; menor que `limite_metros` |
+
+O seed grava `regua-exemplo` com os dados do piloto: rua `7` (Rua das Palafitas), Jardim Pantanal, São Paulo/SP (`3550308`), latitude `-23.476551`, longitude `-46.41135`, limite 1,20 m e atenção 1,00 m (o `LIMITE_CM=120` e os 100 cm de atenção do firmware).
+
+Exemplo de resposta de `GET /regua?reguaId=regua-exemplo`:
+
+```json
+{
+  "reguaId": "regua-exemplo",
+  "local": "Córrego do bairro de exemplo",
+  "nivelMetros": 0.93,
+  "limiteMetros": 1.2,
+  "medidaEm": "2026-11-14T22:30:00.000Z",
+  "ruaId": "7",
+  "codigoIbge": "3550308",
+  "latitude": -23.476551,
+  "longitude": -46.41135,
+  "atencaoMetros": 1
+}
+```
+
+Régua sem localização devolve os mesmos campos com `null`.
+
 A chave do dispositivo nunca é guardada: só o hash sha256, comparado com `crypto.timingSafeEqual`.
 
 ## Testes
@@ -152,7 +190,7 @@ A chave do dispositivo nunca é guardada: só o hash sha256, comparado com `cryp
 
 ## Evidências
 
-Em `docs/evidencias/`: saída dos testes, saída dos `curl` dos endpoints principais, o JSON do OpenAPI e o print do Swagger (`09-swagger.png`).
+Em `docs/evidencias/`: saída dos testes, saída dos `curl` dos endpoints principais, o JSON do OpenAPI, o print do Swagger (`09-swagger.png`) e os `curl` dos campos novos da régua e do filtro por município (`10-localizacao.txt`).
 
 ## Dados e custos
 

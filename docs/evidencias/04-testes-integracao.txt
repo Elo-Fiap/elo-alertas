@@ -3,11 +3,11 @@
 > vitest run --config vitest.integracao.config.ts
 
 
- RUN  v5.1.0 elo-alertas
+ RUN  v5.1.0 /Users/jota/Library/Application Support/Claude/scratch-workspaces/9f53ff35-6c86-40eb-bc09-966b428a8abe/e196a90b-e640-45a6-8463-8ce551e69492/scratch-2026-11-10-02084e/elo-alertas
 
 
  Test Files  3 passed (3)
-      Tests  38 passed (38)
-   Start at  07:35:10
-   Duration  1.64s (tests 59%, import 38%, transform 2%)
+      Tests  46 passed (46)
+   Start at  20:01:11
+   Duration  2.52s (tests 57%, import 40%, transform 2%, worker 1%)
 
