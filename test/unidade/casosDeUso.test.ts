@@ -61,6 +61,24 @@ describe('consultar régua e histórico', () => {
     expect(lista.map((x) => [x.regua.id, x.ultimaLeitura?.acimaDoLimite])).toEqual([['a-regua', true], ['regua-1', false]]);
   });
 
+  it('lista as réguas de um município só, com a localização que o domínio guarda', async () => {
+    const piloto = {
+      ...reguaDeTeste(),
+      id: 'piloto',
+      codigoIbge: '3550308',
+      ruaId: '7',
+      latitude: -23.476551,
+      longitude: -46.41135,
+      atencaoMetros: 1,
+    };
+    const deps = { reguas: new ReguasEmMemoria([reguaDeTeste(), piloto]), leituras: new LeiturasEmMemoria() };
+    const doMunicipio = await listarReguas(deps, { codigoIbge: '3550308' });
+    expect(doMunicipio.map((x) => x.regua.id)).toEqual(['piloto']);
+    expect(doMunicipio[0]?.regua).toMatchObject({ ruaId: '7', atencaoMetros: 1, latitude: -23.476551 });
+    expect(await listarReguas(deps, { codigoIbge: '3304557' })).toEqual([]);
+    expect(await listarReguas(deps)).toHaveLength(2);
+  });
+
   it('histórico respeita a janela, a ordem e valida horas', async () => {
     const leituras = new LeiturasEmMemoria();
     const r = relogio();

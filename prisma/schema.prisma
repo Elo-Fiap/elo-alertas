@@ -15,6 +15,14 @@ model Regua {
   local              String
   limiteMetros       Decimal   @map("limite_metros") @db.Decimal(5, 2)
   alturaSensorMetros Decimal?  @map("altura_sensor_metros") @db.Decimal(5, 2)
+  /// Nível em metros a partir do qual a régua pede atenção. Menor que o limite.
+  atencaoMetros      Decimal?  @map("atencao_metros") @db.Decimal(5, 2)
+  /// Id da rua na API do bairro, em texto.
+  ruaId              String?   @map("rua_id")
+  /// Município (código IBGE, 7 dígitos).
+  codigoIbge         String?   @map("codigo_ibge")
+  latitude           Decimal?  @db.Decimal(9, 6)
+  longitude          Decimal?  @db.Decimal(9, 6)
   chaveHash          String    @map("chave_hash")
   criadaEm           DateTime  @default(now()) @map("criada_em") @db.Timestamptz(3)
   leituras           Leitura[]

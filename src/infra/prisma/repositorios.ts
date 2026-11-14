@@ -29,6 +29,11 @@ export class ReguasPrisma implements RepositorioReguas {
     local: string;
     limiteMetros: Prisma.Decimal;
     alturaSensorMetros: Prisma.Decimal | null;
+    atencaoMetros: Prisma.Decimal | null;
+    ruaId: string | null;
+    codigoIbge: string | null;
+    latitude: Prisma.Decimal | null;
+    longitude: Prisma.Decimal | null;
     chaveHash: string;
   }): Regua {
     return {
@@ -36,6 +41,11 @@ export class ReguasPrisma implements RepositorioReguas {
       local: r.local,
       limiteMetros: r.limiteMetros.toNumber(),
       alturaSensorMetros: r.alturaSensorMetros?.toNumber() ?? null,
+      atencaoMetros: r.atencaoMetros?.toNumber() ?? null,
+      ruaId: r.ruaId,
+      codigoIbge: r.codigoIbge,
+      latitude: r.latitude?.toNumber() ?? null,
+      longitude: r.longitude?.toNumber() ?? null,
       chaveHash: r.chaveHash,
     };
   }
@@ -45,8 +55,11 @@ export class ReguasPrisma implements RepositorioReguas {
     return r ? this.paraDominio(r) : null;
   }
 
-  async listar(): Promise<Regua[]> {
-    const todas = await this.prisma.regua.findMany({ orderBy: { id: 'asc' } });
+  async listar(filtro: { codigoIbge?: string } = {}): Promise<Regua[]> {
+    const todas = await this.prisma.regua.findMany({
+      where: filtro.codigoIbge === undefined ? {} : { codigoIbge: filtro.codigoIbge },
+      orderBy: { id: 'asc' },
+    });
     return todas.map((r) => this.paraDominio(r));
   }
 }

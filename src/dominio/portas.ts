@@ -5,8 +5,8 @@ import type { Leitura, Regua } from './regua.js';
 
 export interface RepositorioReguas {
   buscarPorId(id: string): Promise<Regua | null>;
-  /** Todas as réguas, em ordem de id. */
-  listar(): Promise<Regua[]>;
+  /** Todas as réguas, em ordem de id. Com `codigoIbge`, só as do município. */
+  listar(filtro?: { codigoIbge?: string }): Promise<Regua[]>;
 }
 
 export interface RepositorioLeituras {

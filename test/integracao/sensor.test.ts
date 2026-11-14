@@ -33,6 +33,11 @@ describe('POST /leituras e GET /regua', () => {
       nivelMetros: 0.87,
       limiteMetros: 1.2,
       medidaEm,
+      ruaId: '7',
+      codigoIbge: '3550308',
+      latitude: -23.476551,
+      longitude: -46.41135,
+      atencaoMetros: 1,
     });
   });
 
@@ -119,6 +124,63 @@ describe('corpo inválido', () => {
   });
 });
 
+describe('localização e atenção da régua', () => {
+  const semLocalizacao = {
+    ruaId: null,
+    codigoIbge: null,
+    latitude: null,
+    longitude: null,
+    atencaoMetros: null,
+  };
+
+  it('GET /regua e GET /reguas devolvem os campos novos como número e texto, e null quando não há', async () => {
+    await postar({ reguaId: 'regua-b', nivelMetros: 0.3 }, 'outra-chave');
+    const b = (await amb.app.inject({ url: '/regua?reguaId=regua-b' })).json();
+    expect(b).toMatchObject(semLocalizacao);
+
+    const lista = (await amb.app.inject({ url: '/reguas' })).json();
+    expect(lista[0]).toMatchObject({ reguaId: 'regua-b', ...semLocalizacao });
+    expect(lista[1]).toMatchObject({
+      reguaId: 'regua-exemplo',
+      ruaId: '7',
+      codigoIbge: '3550308',
+      latitude: -23.476551,
+      longitude: -46.41135,
+      atencaoMetros: 1,
+    });
+    expect(typeof lista[1].latitude).toBe('number');
+    expect(typeof lista[1].atencaoMetros).toBe('number');
+  });
+
+  it('GET /reguas?codigoIbge= filtra por município', async () => {
+    const do_municipio = await amb.app.inject({ url: '/reguas?codigoIbge=3550308' });
+    expect(do_municipio.statusCode).toBe(200);
+    expect(do_municipio.json().map((x: { reguaId: string }) => x.reguaId)).toEqual(['regua-exemplo']);
+
+    const outro = await amb.app.inject({ url: '/reguas?codigoIbge=3304557' });
+    expect(outro.statusCode).toBe(200);
+    expect(outro.json()).toEqual([]);
+  });
+
+  it.each(['123456', '12345678', 'abcdefg', '355030a', ''])('400 no formato do serviço para codigoIbge "%s"', async (codigo) => {
+    const r = await amb.app.inject({ url: `/reguas?codigoIbge=${codigo}` });
+    expect(r.statusCode).toBe(400);
+    expect(r.json().erro).toBe('dado_invalido');
+    expect(r.json().mensagem).toContain('codigoIbge');
+  });
+
+  it('o banco recusa coordenada sozinha, município torto e atenção acima do limite', async () => {
+    const base = { local: 'x', limiteMetros: 1.2, chaveHash: 'h' };
+    const recusa = (data: object) => amb.prisma.regua.create({ data: { id: 'ruim', ...base, ...data } });
+    await expect(recusa({ latitude: -23.4 })).rejects.toThrow();
+    await expect(recusa({ latitude: -123.4, longitude: -46.4 })).rejects.toThrow();
+    await expect(recusa({ codigoIbge: '355' })).rejects.toThrow();
+    await expect(recusa({ atencaoMetros: 1.2 })).rejects.toThrow();
+    await expect(recusa({ atencaoMetros: 0 })).rejects.toThrow();
+    expect(await amb.prisma.regua.count({ where: { id: 'ruim' } })).toBe(0);
+  });
+});
+
 describe('GET /reguas e histórico', () => {
   it('lista as réguas com a última leitura e nunca expõe a chave', async () => {
     await postar({ reguaId: 'regua-exemplo', nivelMetros: 1.5 });
@@ -129,7 +191,17 @@ describe('GET /reguas e histórico', () => {
     expect(lista.map((x: { reguaId: string }) => x.reguaId)).toEqual(['regua-b', 'regua-exemplo']);
     expect(lista[0].ultimaLeitura).toBeNull();
     expect(lista[1].ultimaLeitura).toMatchObject({ nivelMetros: 1.5, acimaDoLimite: true });
-    expect(Object.keys(lista[1]).sort()).toEqual(['limiteMetros', 'local', 'reguaId', 'ultimaLeitura']);
+    expect(Object.keys(lista[1]).sort()).toEqual([
+      'atencaoMetros',
+      'codigoIbge',
+      'latitude',
+      'limiteMetros',
+      'local',
+      'longitude',
+      'reguaId',
+      'ruaId',
+      'ultimaLeitura',
+    ]);
   });
 
   it('histórico em ordem decrescente, respeita a janela de horas e valida o parâmetro', async () => {

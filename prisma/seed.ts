@@ -9,15 +9,25 @@ async function main(): Promise<void> {
     throw new Error('Defina CHAVE_REGUA_EXEMPLO no .env (veja .env.example) antes de rodar o seed.');
   }
 
+  // Dados do piloto: Rua das Palafitas (rua 7 na API do bairro), Jardim Pantanal, São Paulo/SP.
+  // Atenção em 1,00 m, como o firmware da régua.
+  const piloto = {
+    ruaId: '7',
+    codigoIbge: '3550308',
+    latitude: -23.476551,
+    longitude: -46.41135,
+    atencaoMetros: 1.0,
+  };
   await prisma.regua.upsert({
     where: { id: 'regua-exemplo' },
-    update: { chaveHash: hashDaChave(chave) },
+    update: { chaveHash: hashDaChave(chave), ...piloto },
     create: {
       id: 'regua-exemplo',
       local: 'Córrego do bairro de exemplo',
       limiteMetros: 1.2,
       alturaSensorMetros: 3.0,
       chaveHash: hashDaChave(chave),
+      ...piloto,
     },
   });
 
