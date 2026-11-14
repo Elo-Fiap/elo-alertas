@@ -5,7 +5,7 @@ Serviço de SOA do projeto Elo (Global Solution 2026.2, FIAP). O Elo é um app q
 1. **Sensor**: recebe as leituras da régua de nível (ESP32 com sensor ultrassônico) e devolve a última leitura e o histórico.
 2. **Avisos**: baixa os avisos do INMET (cerca de 580 KB, Brasil inteiro), guarda no banco e devolve só os avisos de um município (código IBGE), em poucos bytes.
 
-As chamadas, as ruas e os planos do bairro ficam em outro serviço, em C# (`elo-api-csharp`), que também alimenta o painel web de administração (`elo-admin`). Este serviço não conversa com ele: cada régua só guarda o id da rua (`rua_id`) e o município (`codigo_ibge`), e quem junta as duas pontas é o app.
+As chamadas, as ruas e os planos do bairro ficam em outro serviço, em C# (`elo-api-csharp`), que também alimenta o painel web de administração (`elo-admin`). Os dois serviços não trocam dados: cada régua daqui só guarda o id da rua na API em C# (`rua_id`) e o município (`codigo_ibge`). A API em C# também tem `POST /leituras` e `GET /regua`, no mesmo formato, e é dela que o app e o painel leem a régua hoje. Se a régua mandar a leitura só para este serviço, o app e o painel não a veem; quem recebe na demonstração é decisão do grupo.
 
 ## Onde entra no Elo
 
@@ -65,7 +65,7 @@ A lista completa, com exemplos e respostas de erro, está em `/docs` (Swagger ge
 | `POST /leituras` | O ESP32 envia o nível; exige o header `X-Chave-Dispositivo` (204) |
 | `GET /avisos?codigoIbge=` | Avisos do INMET para o município, do mais grave ao mais leve |
 
-`GET /regua` tem o formato que o app já lê, mais cinco campos opcionais: `ruaId`, `codigoIbge`, `latitude`, `longitude` e `atencaoMetros`. Todos saem `null` quando a régua não tem o dado, e a coordenada vem sempre em par. Quem lê a versão antiga ignora o que não conhece. Cada aviso de `GET /avisos` traz os campos do tipo `Aviso` do app (incluindo `gravidade` e `quando`); hoje o app ainda baixa o INMET direto, e passar a usar este serviço é trocar a URL e ler a lista no lugar de `{ hoje, futuro }`. Esses dados vêm do seed: não há rota para gravar a localização. Em `GET /avisos`, o header `X-Avisos-Atualizados-Em` traz a hora da última sincronização com sucesso.
+`GET /regua` tem o formato que o app já lê, mais cinco campos opcionais: `ruaId`, `codigoIbge`, `latitude`, `longitude` e `atencaoMetros`. Todos saem `null` quando a régua não tem o dado, e a coordenada vem sempre em par. Quem lê a versão antiga ignora o que não conhece. A localização vem do seed: não há rota para gravá-la. Cada aviso de `GET /avisos` traz os campos do tipo `Aviso` do app (incluindo `gravidade` e `quando`). Com a API do bairro configurada, o app lê a lista pronta do `GET /avisos` da API em C#, que tem o mesmo formato; sem ela, baixa o INMET direto. Para usar este serviço no lugar, basta trocar o endereço. Em `GET /avisos`, o header `X-Avisos-Atualizados-Em` traz a hora da última sincronização com sucesso.
 
 Como o aviso é atualizado: o serviço lê do banco. Se a última sincronização com sucesso passou de `AVISOS_VALIDADE_MIN` minutos, baixa o INMET antes de responder e troca os avisos numa transação. Se o INMET falhar ou passar de 8 s (o app desiste em 10 s), a falha fica registrada em `sincronizacoes` e a resposta usa o que já está no banco, sem os avisos que já terminaram. Depois de uma falha, o serviço espera 1 minuto antes de tentar o INMET de novo.
 
@@ -147,7 +147,6 @@ Migrações (em `prisma/migrations`, aplicadas com `prisma migrate deploy`):
 1. `reguas_e_leituras`: tabelas `reguas` e `leituras`, com índice por régua e `medida_em` decrescente.
 2. `avisos_inmet`: enum `severidade`, tabelas `avisos` (com índice GIN em `municipios`) e `sincronizacoes`.
 3. `regras_no_banco`: escrita à mão, porque o Prisma não descreve `CHECK`. Nível entre 0 e 20 m, bateria entre 0 e 100, limite positivo, aviso com `fim` depois de `inicio`, e índice por `recebida_em` para achar a última leitura.
-
 4. `localizacao_e_atencao`: cinco colunas novas e opcionais em `reguas` (`rua_id`, `codigo_ibge`, `latitude`, `longitude`, `atencao_metros`), com `CHECK` à mão: coordenada em par e dentro do mapa, município com 7 dígitos e atenção maior que 0 e menor que o limite.
 
 Os campos novos da régua:

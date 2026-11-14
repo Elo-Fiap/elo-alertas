@@ -25,5 +25,5 @@ Anotem aqui cada uso de IA durante o projeto. Uma linha por uso.
 | Data | Quem | Ferramenta | O que foi pedido | O que usamos | O que mudamos ou corrigimos |
 | --- | --- | --- | --- | --- | --- |
 | 06/11/2026 | João | Claude Code | Montar o serviço de SOA (sensor e avisos) em TypeScript | Estrutura inteira do serviço | A conferir |
-|  |  |  |  |  |  |
+| 14/11/2026 | João | Claude Code | Atualizar o serviço para receber os dados do painel web de administração | Localização, rua, município e nível de atenção na régua (migração, seed, `GET /regua`, `GET /reguas?codigoIbge=`), testes, evidências e README | A conferir |
 |  |  |  |  |  |  |
