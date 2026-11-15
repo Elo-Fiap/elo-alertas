@@ -1,0 +1,46 @@
+# Evidências: campos novos da régua (localização, vínculo e atenção), 2026-11-14T23:00Z
+
+
+$ curl http://localhost:3040/regua?reguaId=regua-exemplo
+HTTP/1.1 200 OK
+content-type: application/json; charset=utf-8
+content-length: 240
+
+{"reguaId":"regua-exemplo","local":"Córrego do bairro de exemplo","nivelMetros":1.23,"limiteMetros":1.2,"medidaEm":"2026-11-06T10:35:27.337Z","ruaId":"7","codigoIbge":"3550308","latitude":-23.476551,"longitude":-46.41135,"atencaoMetros":1}
+
+
+
+$ curl http://localhost:3040/reguas
+HTTP/1.1 200 OK
+content-type: application/json; charset=utf-8
+content-length: 281
+
+[{"reguaId":"regua-exemplo","local":"Córrego do bairro de exemplo","limiteMetros":1.2,"ruaId":"7","codigoIbge":"3550308","latitude":-23.476551,"longitude":-46.41135,"atencaoMetros":1,"ultimaLeitura":{"nivelMetros":1.23,"medidaEm":"2026-11-06T10:35:27.337Z","acimaDoLimite":true}}]
+
+
+
+$ curl http://localhost:3040/reguas?codigoIbge=3550308
+HTTP/1.1 200 OK
+content-type: application/json; charset=utf-8
+content-length: 281
+
+[{"reguaId":"regua-exemplo","local":"Córrego do bairro de exemplo","limiteMetros":1.2,"ruaId":"7","codigoIbge":"3550308","latitude":-23.476551,"longitude":-46.41135,"atencaoMetros":1,"ultimaLeitura":{"nivelMetros":1.23,"medidaEm":"2026-11-06T10:35:27.337Z","acimaDoLimite":true}}]
+
+
+
+$ curl http://localhost:3040/reguas?codigoIbge=3304557
+HTTP/1.1 200 OK
+content-type: application/json; charset=utf-8
+content-length: 2
+
+[]
+
+
+
+$ curl http://localhost:3040/reguas?codigoIbge=123
+HTTP/1.1 400 Bad Request
+content-type: application/json; charset=utf-8
+content-length: 105
+
+{"erro":"dado_invalido","mensagem":"O campo \"codigoIbge\" não está no formato esperado (^[0-9]{7}$)."}
+

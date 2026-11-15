@@ -25,8 +25,9 @@ export async function consultarRegua(
   return { regua, leitura };
 }
 
-export async function listarReguas(deps: DepsRegua): Promise<ReguaComUltimaLeitura[]> {
-  const reguas = await deps.reguas.listar();
+/** Todas as réguas com a última leitura. Com `codigoIbge`, só as do município. */
+export async function listarReguas(deps: DepsRegua, filtro: { codigoIbge?: string } = {}): Promise<ReguaComUltimaLeitura[]> {
+  const reguas = await deps.reguas.listar(filtro);
   return Promise.all(
     reguas.map(async (regua) => {
       const leitura = await deps.leituras.ultima(regua.id);

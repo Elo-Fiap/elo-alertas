@@ -37,7 +37,18 @@ export async function criarAmbiente(
   await prisma.$executeRawUnsafe('TRUNCATE leituras, avisos, sincronizacoes, reguas RESTART IDENTITY CASCADE');
   await prisma.regua.createMany({
     data: [
-      { id: 'regua-exemplo', local: 'Córrego de teste', limiteMetros: 1.2, alturaSensorMetros: 3, chaveHash: hashDaChave(CHAVE) },
+      {
+        id: 'regua-exemplo',
+        local: 'Córrego de teste',
+        limiteMetros: 1.2,
+        alturaSensorMetros: 3,
+        atencaoMetros: 1,
+        ruaId: '7',
+        codigoIbge: '3550308',
+        latitude: -23.476551,
+        longitude: -46.41135,
+        chaveHash: hashDaChave(CHAVE),
+      },
       { id: 'regua-b', local: 'Outro ponto', limiteMetros: 0.8, chaveHash: hashDaChave('outra-chave') },
     ],
   });

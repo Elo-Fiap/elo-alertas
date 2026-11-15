@@ -12,8 +12,10 @@ export class ReguasEmMemoria implements RepositorioReguas {
   async buscarPorId(id: string) {
     return this.reguas.find((r) => r.id === id) ?? null;
   }
-  async listar() {
-    return [...this.reguas].sort((a, b) => a.id.localeCompare(b.id));
+  async listar(filtro: { codigoIbge?: string } = {}) {
+    return this.reguas
+      .filter((r) => filtro.codigoIbge === undefined || r.codigoIbge === filtro.codigoIbge)
+      .sort((a, b) => a.id.localeCompare(b.id));
   }
 }
 
@@ -67,5 +69,16 @@ export class FonteFalsa implements FonteDeAvisos {
 }
 
 export function reguaDeTeste(chave = 'chave-secreta'): Regua {
-  return { id: 'regua-1', local: 'Córrego', limiteMetros: 1.2, alturaSensorMetros: 3, chaveHash: hashDaChave(chave) };
+  return {
+    id: 'regua-1',
+    local: 'Córrego',
+    limiteMetros: 1.2,
+    alturaSensorMetros: 3,
+    atencaoMetros: null,
+    ruaId: null,
+    codigoIbge: null,
+    latitude: null,
+    longitude: null,
+    chaveHash: hashDaChave(chave),
+  };
 }

@@ -6,6 +6,15 @@ export interface Regua {
   local: string;
   limiteMetros: number;
   alturaSensorMetros: number | null;
+  /** Nível em metros a partir do qual a régua pede atenção. Menor que o limite; null se não definido. */
+  atencaoMetros: number | null;
+  /** Id da rua na API do bairro, em texto. */
+  ruaId: string | null;
+  /** Município da régua (código IBGE, 7 dígitos). */
+  codigoIbge: string | null;
+  /** Coordenada sempre em par: as duas ou nenhuma. */
+  latitude: number | null;
+  longitude: number | null;
   /** sha256 em hexadecimal da chave do dispositivo. Nunca sai pela API. */
   chaveHash: string;
 }
