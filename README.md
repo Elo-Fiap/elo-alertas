@@ -11,9 +11,9 @@ As chamadas, as ruas e os planos do bairro ficam em outro serviço, em C# (`elo-
 
 ```mermaid
 flowchart LR
-    ESP[ESP32 com sensor] -->|POST /leituras| ALERTAS[Elo Alertas]
-    APP[App Elo - Expo] -->|GET /regua, GET /avisos| ALERTAS
-    APP -->|chamadas, ruas, planos| BAIRRO[API do bairro - C#]
+    ESP[ESP32 com sensor] -.->|POST /leituras| ALERTAS[Elo Alertas]
+    ESP -.->|POST /leituras, mesmo formato| BAIRRO[API do bairro - C#]
+    APP[App Elo - Expo] -->|situação, chamadas, planos, régua, avisos| BAIRRO
     PAINEL[Painel web - elo-admin] -->|GET /api/admin/instantaneo| BAIRRO
     ALERTAS -->|baixa avisos ativos| INMET[INMET]
     ALERTAS --- DB[(PostgreSQL)]
@@ -189,7 +189,7 @@ A chave do dispositivo nunca é guardada: só o hash sha256, comparado com `cryp
 
 ## Evidências
 
-Em `docs/evidencias/`: saída dos testes, saída dos `curl` dos endpoints principais, o JSON do OpenAPI, o print do Swagger (`09-swagger.png`) e os `curl` dos campos novos da régua e do filtro por município (`10-localizacao.txt`).
+Em `docs/evidencias/`: saída dos testes, saída dos `curl` dos endpoints principais, o JSON do OpenAPI, o print do Swagger (`09-swagger.png`) e os `curl` dos campos novos da régua e do filtro por município (`10-localizacao.txt`). A `01-migracoes.txt` e a `07-curl.txt` são da primeira entrega (06/11/2026): têm 3 migrações e o `/regua` sem os campos novos. A quarta migração e o formato atual estão na `10-localizacao.txt` e no OpenAPI (`08`).
 
 ## Dados e custos
 

@@ -172,12 +172,20 @@ describe('localização e atenção da régua', () => {
   it('o banco recusa coordenada sozinha, município torto e atenção acima do limite', async () => {
     const base = { local: 'x', limiteMetros: 1.2, chaveHash: 'h' };
     const recusa = (data: object) => amb.prisma.regua.create({ data: { id: 'ruim', ...base, ...data } });
-    await expect(recusa({ latitude: -23.4 })).rejects.toThrow();
-    await expect(recusa({ latitude: -123.4, longitude: -46.4 })).rejects.toThrow();
-    await expect(recusa({ codigoIbge: '355' })).rejects.toThrow();
-    await expect(recusa({ atencaoMetros: 1.2 })).rejects.toThrow();
-    await expect(recusa({ atencaoMetros: 0 })).rejects.toThrow();
+    await expect(recusa({ latitude: -23.4 })).rejects.toThrow(/reguas_coordenada_em_par/);
+    await expect(recusa({ longitude: -46.4 })).rejects.toThrow(/reguas_coordenada_em_par/);
+    await expect(recusa({ latitude: -123.4, longitude: -46.4 })).rejects.toThrow(/reguas_coordenada_em_par/);
+    await expect(recusa({ codigoIbge: '355' })).rejects.toThrow(/reguas_codigo_ibge_valido/);
+    await expect(recusa({ codigoIbge: '355030a' })).rejects.toThrow(/reguas_codigo_ibge_valido/);
+    await expect(recusa({ atencaoMetros: 1.2 })).rejects.toThrow(/reguas_atencao_abaixo_do_limite/);
+    await expect(recusa({ atencaoMetros: 0 })).rejects.toThrow(/reguas_atencao_abaixo_do_limite/);
     expect(await amb.prisma.regua.count({ where: { id: 'ruim' } })).toBe(0);
+
+    // Nas bordas, o banco aceita.
+    await amb.prisma.regua.create({
+      data: { id: 'borda', ...base, latitude: 90, longitude: -180, codigoIbge: '3550308', atencaoMetros: 1.19 },
+    });
+    await amb.prisma.regua.delete({ where: { id: 'borda' } });
   });
 });
 
