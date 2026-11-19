@@ -1,5 +1,19 @@
 # Elo Alertas
 
+## Ficha da CitizenTech
+
+| Campo | Resposta |
+| --- | --- |
+| Nome da CitizenTech | Elo |
+| Cidade e bairro | São Paulo, Jardim Pantanal (bairro do piloto) |
+| Cidadão beneficiado | Moradores de ruas que alagam, por meio da liderança da rua ou do voluntário do núcleo comunitário de Defesa Civil |
+| Problema, em uma frase | Durante a chuva forte, quem cuida do bairro não consegue saber quais ruas estão bem, quais precisam de ajuda e quais ficaram em silêncio. |
+| Como funciona | O aviso oficial chega ao coordenador, a liderança de cada rua responde em um toque, mesmo com internet ruim, e o painel destaca as ruas sem resposta. Um sensor mede a água no ponto crítico. |
+| O que cada parte faz | App: aviso, chamada, plano e registro. API: guarda as chamadas e ordena as ruas em silêncio. **Elo Alertas (este repositório): recebe as leituras da régua e entrega os avisos do INMET por município.** ESP32: mede a água e toca o buzzer. ML: indica o nível de atenção por subprefeitura. Segurança: evita vazamento do que é digitado. Linux: hospeda a API. Testes: requisitos e casos de teste. |
+| Link do repositório | https://github.com/Elo-Fiap/elo-alertas |
+| Indicador de impacto | Percentual de ruas com situação conhecida em 15 minutos, comparando o simulado sem e com o app |
+| ODS conectados | ODS 11 (meta 11.5) e ODS 13 (meta 13.1) |
+
 Serviço de SOA do projeto Elo (Global Solution 2026.2, FIAP). O Elo é um app que faz a chamada das ruas de um bairro durante chuva forte. Este serviço cuida de duas coisas e só delas:
 
 1. **Sensor**: recebe as leituras da régua de nível (ESP32 com sensor ultrassônico) e devolve a última leitura e o histórico.
@@ -201,11 +215,11 @@ Em `docs/evidencias/`: saída dos testes, saída dos `curl` dos endpoints princi
 
 | Nome | RM |
 | --- | --- |
-| João Victor |  |
-| Bruno |  |
-| Rodrigo |  |
-| Lucca |  |
-| Ruan |  |
+| Bruno Leão | RM555563 |
+| João Victor Franco | RM556790 |
+| Lucca Borges | RM554608 |
+| Rodrigo Jimenez | RM558148 |
+| Ruan Melo | RM557599 |
 
 ## Uso de IA
 
